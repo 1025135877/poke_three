@@ -14,7 +14,7 @@ git pull origin main
 
 echo ""
 echo "🔨 [2/4] 重新构建镜像..."
-docker compose build --no-cache
+docker compose build
 
 echo ""
 echo "♻️  [3/4] 重启容器..."
