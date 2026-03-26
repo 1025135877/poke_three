@@ -1,0 +1,34 @@
+server:
+  port: 3000
+
+spring:
+  datasource:
+    url: jdbc:sqlite:./poke_three.db
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+      minimum-idle: 1
+      connection-timeout: 30000
+
+  jackson:
+    default-property-inclusion: non_null
+    time-zone: Asia/Shanghai
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:sql/init.sql
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      table-prefix: t_
+      id-type: assign_uuid
+
+logging:
+  level:
+    com.pokethree: DEBUG
+    root: INFO

@@ -1,0 +1,308 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ====== 全局设计系统 ====== */
+
+/* 字体已在 fonts.css 中通过 @fontsource 本地引入 */
+
+:root {
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* ====== Base 层 ====== */
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
+  body {
+    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+    background-color: #fcf6e3;
+    color: #312f23;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    min-height: 100dvh;
+  }
+
+  #app {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    position: relative;
+    overflow: hidden;
+    background-color: #fcf6e3;
+  }
+
+  /* Material Symbols 基础设置 */
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined Variable', 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'liga';
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    user-select: none;
+  }
+
+  .material-symbols-outlined.filled {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+}
+
+/* ====== Components 层 ====== */
+@layer components {
+
+  /* 底部导航栏 */
+  .bottom-nav {
+    @apply fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-surface/95 backdrop-blur-md z-50;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .bottom-nav-item {
+    @apply flex flex-col items-center gap-0.5 py-2 px-4 cursor-pointer transition-all duration-300;
+    @apply text-on-surface-variant text-xs font-label;
+  }
+
+  .bottom-nav-item.active {
+    @apply text-primary;
+  }
+
+  .bottom-nav-item.active .nav-icon-wrapper {
+    @apply bg-primary-container scale-110;
+    box-shadow: 0 4px 12px rgba(253, 208, 0, 0.4);
+  }
+
+  .nav-icon-wrapper {
+    @apply w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300;
+  }
+
+  /* 按钮组件 */
+  .btn-primary {
+    @apply bg-primary-container text-on-primary-container font-headline font-bold;
+    @apply px-8 py-3.5 rounded-full shadow-lg transition-all duration-200;
+    @apply hover:brightness-105 active:scale-95;
+    box-shadow: 0 6px 0 0 #584700, 0 8px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .btn-primary:active {
+    box-shadow: 0 2px 0 0 #584700, 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: scale(0.95) translateY(2px);
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-on-secondary font-headline font-bold;
+    @apply px-8 py-3.5 rounded-full shadow-lg transition-all duration-200;
+    @apply hover:brightness-105 active:scale-95;
+    box-shadow: 0 6px 0 0 #8a0015, 0 8px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .btn-secondary:active {
+    box-shadow: 0 2px 0 0 #8a0015, 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: scale(0.95) translateY(2px);
+  }
+
+  .btn-tertiary {
+    @apply bg-tertiary text-on-tertiary font-headline font-bold;
+    @apply px-6 py-3 rounded-full shadow-lg transition-all duration-200;
+    @apply hover:brightness-105 active:scale-95;
+    box-shadow: 0 4px 0 0 #004d12;
+  }
+
+  .btn-ghost {
+    @apply bg-surface-container text-on-surface font-body;
+    @apply px-6 py-3 rounded-full transition-all duration-200;
+    @apply hover:bg-surface-container-high active:scale-95;
+  }
+
+  /* 卡片组件 */
+  .card {
+    @apply bg-surface-container rounded-2xl p-5 transition-all duration-300;
+    @apply hover:bg-surface-container-high;
+  }
+
+  .card-elevated {
+    @apply bg-surface-container-high rounded-2xl p-5;
+    box-shadow: 0 2px 8px rgba(49, 47, 35, 0.06);
+  }
+
+  /* 扑克牌组件 */
+  .poker-card {
+    @apply relative w-24 h-36 rounded-xl flex flex-col items-center justify-center;
+    @apply bg-white border-4 border-primary-container;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 8px 0 -4px #f5efd9;
+    transition: transform 0.3s var(--ease-out-back);
+  }
+
+  .poker-card:hover {
+    transform: translateY(-8px) rotate(-2deg);
+  }
+
+  .poker-card.red {
+    @apply text-secondary;
+  }
+
+  .poker-card.black {
+    @apply text-on-surface;
+  }
+
+  .poker-card-back {
+    @apply relative w-24 h-36 rounded-xl flex items-center justify-center;
+    @apply bg-gradient-to-br from-primary to-primary-dim border-4 border-primary-container;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  /* 标签组件 */
+  .tag {
+    @apply px-3 py-1 rounded-full text-xs font-bold;
+  }
+
+  .tag-green {
+    @apply bg-tertiary-container text-on-tertiary-container;
+  }
+
+  .tag-yellow {
+    @apply bg-primary-container text-on-primary-container;
+  }
+
+  .tag-red {
+    @apply bg-secondary text-on-secondary;
+  }
+
+  /* 页面容器 */
+  .page {
+    @apply min-h-screen pb-24;
+  }
+
+  .page-header {
+    @apply sticky top-0 z-40 flex items-center justify-between px-5 py-3;
+    @apply bg-surface/90 backdrop-blur-md;
+  }
+
+  /* 头像组件 */
+  .avatar {
+    @apply rounded-full overflow-hidden bg-surface-container border-4 border-primary-container;
+  }
+
+  .avatar-sm {
+    @apply w-10 h-10;
+  }
+
+  .avatar-md {
+    @apply w-14 h-14;
+  }
+
+  .avatar-lg {
+    @apply w-20 h-20;
+  }
+
+  /* 顶部信息栏 */
+  .top-bar {
+    @apply flex items-center justify-between px-5 py-3;
+  }
+}
+
+/* ====== Utilities 层 ====== */
+@layer utilities {
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #fdd000, #dfc562);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-red {
+    background: linear-gradient(135deg, #b61321, #ff6b6b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* 牌桌绿色渐变 */
+  .bg-table-felt {
+    background: radial-gradient(ellipse at center, #008a22 0%, #006b1b 60%, #004d12 100%);
+  }
+
+  /* 磨砂玻璃效果 */
+  .glass {
+    @apply bg-surface/70 backdrop-blur-xl;
+  }
+
+  /* 滚动条隐藏 */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* ====== 页面过渡动画 ====== */
+.page-enter {
+  animation: pageEnter 0.35s ease-out forwards;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ====== 牌桌动画 ====== */
+@keyframes breathe {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(253, 208, 0, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(253, 208, 0, 0);
+  }
+}
+
+.active-turn {
+  animation: breathe 1.5s ease-in-out infinite;
+  border-radius: 9999px;
+}
+
+/* 开牌翻转 */
+.card-reveal {
+  perspective: 600px;
+}
+
+.card-reveal .card-inner {
+  transition: transform 0.6s var(--ease-out-back);
+  transform-style: preserve-3d;
+}
+
+.card-reveal.flipped .card-inner {
+  transform: rotateY(180deg);
+}

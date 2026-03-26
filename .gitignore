@@ -1,0 +1,38 @@
+# === IDE 缓存目录 ===
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+
+# === UI 设计目录 ===
+ui/
+
+# === Java / Maven ===
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# === SQLite 数据库 ===
+*.db
+
+# === Node.js ===
+node_modules/
+dist/
+*.tgz
+
+# === 系统文件 ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === 环境配置 ===
+.env
+.env.local
+.env.*.local

@@ -1,0 +1,17 @@
+/**
+ * 本地字体声明
+ * 替代 Google Fonts CDN 外部引用
+ */
+
+/* ====== Be Vietnam Pro（非可变字体，按权重导入）====== */
+@import '@fontsource/be-vietnam-pro/300.css';
+@import '@fontsource/be-vietnam-pro/400.css';
+@import '@fontsource/be-vietnam-pro/500.css';
+@import '@fontsource/be-vietnam-pro/600.css';
+@import '@fontsource/be-vietnam-pro/700.css';
+
+/* ====== Plus Jakarta Sans（可变字体）====== */
+@import '@fontsource-variable/plus-jakarta-sans';
+
+/* ====== Material Symbols Outlined（可变字体，full variant 包含所有图标）====== */
+@import '@fontsource-variable/material-symbols-outlined/full.css';
