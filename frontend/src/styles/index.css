@@ -26,8 +26,21 @@
     background-color: #fcf6e3;
     color: #312f23;
     overflow-x: hidden;
+    /* 强制始终保留纵向滚动条空间，防止页面切换时视口宽度变化导致导航栏抖动 */
+    overflow-y: scroll;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* 隐藏滚动条轨道但保留滚动能力，保持界面美观 */
+  html::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+  }
+
+  html {
+    scrollbar-width: none;
+    /* Firefox */
   }
 
   body {
