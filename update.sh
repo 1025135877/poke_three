@@ -10,7 +10,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "🔄 [1/4] 拉取最新代码..."
-git pull origin main
+git fetch origin main
+git reset --hard origin/main
 
 echo ""
 echo "🔨 [2/4] 重新构建镜像..."
