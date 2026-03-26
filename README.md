@@ -41,6 +41,7 @@
 ```
 poke_three/
 ├── backend/                  # 后端服务
+│   ├── Dockerfile            # 后端 Docker 镜像
 │   ├── src/main/java/com/pokethree/
 │   │   ├── config/           # 配置类 (CORS, WebSocket)
 │   │   ├── controller/       # REST 控制器
@@ -56,11 +57,14 @@ poke_three/
 │   │   └── ws/               # WebSocket 端点
 │   └── src/main/resources/   # 配置文件 & SQL
 ├── frontend/                 # 前端项目
+│   ├── Dockerfile            # 前端 Docker 镜像
+│   ├── nginx.conf            # Nginx 反向代理配置
 │   ├── src/
 │   │   ├── components/       # UI 组件
 │   │   ├── pages/            # 页面模块
 │   │   └── styles/           # 样式文件
 │   └── public/               # 静态资源
+├── docker-compose.yml        # Docker 一键编排
 ├── docs/screenshots/         # UI 截图
 ├── LICENSE                   # MIT 开源协议
 └── README.md
@@ -107,22 +111,48 @@ poke_three/
 
 ## 🚀 快速开始
 
-### 环境要求
+### 🐳 Docker 部署（推荐）
+
+确保已安装 [Docker](https://docs.docker.com/get-docker/) 和 Docker Compose，然后执行：
+
+```bash
+# 构建并启动
+docker compose up -d
+
+# 查看运行状态
+docker compose ps
+
+# 查看日志
+docker compose logs -f
+
+# 停止服务
+docker compose down
+```
+
+启动后访问 `http://localhost` 即可畅玩 🎮
+
+> **数据持久化**：SQLite 数据库通过 Docker Volume `poke-data` 持久化，`docker compose down` 不会丢失数据。如需彻底清除，执行 `docker compose down -v`。
+
+---
+
+### 本地开发
+
+#### 环境要求
 
 - Java 21+
 - Maven 3.6+
 - Node.js 18+
 
-### 后端启动
+#### 后端启动
 
 ```bash
 cd backend
 mvn spring-boot:run
 ```
 
-后端默认运行在 `http://localhost:8080`
+后端默认运行在 `http://localhost:3000`
 
-### 前端启动
+#### 前端启动
 
 ```bash
 cd frontend
