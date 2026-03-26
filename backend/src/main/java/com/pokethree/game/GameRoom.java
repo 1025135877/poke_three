@@ -76,10 +76,43 @@ public class GameRoom {
     public synchronized void removePlayer(String playerId) {
         if (!players.containsKey(playerId))
             return;
+        // 对局进行中不允许直接移除玩家，应使用 handleDisconnect
+        if (phase == Phase.BETTING || phase == Phase.SHOWDOWN) {
+            handleDisconnect(playerId);
+            return;
+        }
         players.remove(playerId);
         broadcast("player_left", Map.of("playerId", playerId));
-        if (phase == Phase.BETTING)
-            checkGameEnd();
+    }
+
+    /**
+     * 处理玩家掉线（对局中）：标记为弃牌 + 断线，保留在房间内参与结算
+     */
+    public synchronized void handleDisconnect(String playerId) {
+        PlayerState p = players.get(playerId);
+        if (p == null)
+            return;
+
+        p.setDisconnected(true);
+
+        if (phase == Phase.BETTING) {
+            if (!p.isHasFolded() && !p.isAllIn()) {
+                p.setHasFolded(true);
+                broadcast("player_folded", Map.of("playerId", playerId, "reason", "disconnect"));
+
+                // 如果当前轮到该掉线玩家行动，需要推进回合
+                if (!turnOrder.isEmpty() && turnOrder.get(currentPlayerIndex).equals(playerId)) {
+                    cancelTurnTimer();
+                    nextTurn();
+                } else {
+                    // 非当前行动玩家掉线，检查是否应提前结束对局
+                    checkGameEnd();
+                }
+            }
+        }
+
+        broadcast("player_disconnected", Map.of("playerId", playerId));
+        log.info("玩家掉线处理完成（弃牌）: {}", playerId);
     }
 
     public synchronized void playerReady(String playerId) {
@@ -90,7 +123,9 @@ public class GameRoom {
         broadcast("player_ready", Map.of("playerId", playerId));
 
         long readyCount = players.values().stream().filter(PlayerState::isReady).count();
-        if (readyCount >= 2 && readyCount == players.size()) {
+        // 只统计未掉线的玩家
+        long totalActive = players.values().stream().filter(pl -> !pl.isDisconnected()).count();
+        if (readyCount >= 2 && readyCount == totalActive) {
             startGame();
         }
     }
@@ -202,6 +237,7 @@ public class GameRoom {
             pm.put("hasLooked", p.isHasLooked());
             pm.put("isAllIn", p.isAllIn());
             pm.put("isReady", p.isReady());
+            pm.put("disconnected", p.isDisconnected());
             pm.put("currentRoundBet", p.getCurrentRoundBet());
             // 只向本人显示手牌
             if (p.getId().equals(viewerId))
@@ -228,6 +264,17 @@ public class GameRoom {
         round = 0;
         turnOrder.clear();
         cancelTurnTimer();
+
+        // 移除掉线玩家
+        List<String> disconnectedIds = players.values().stream()
+                .filter(PlayerState::isDisconnected)
+                .map(PlayerState::getId)
+                .toList();
+        for (String pid : disconnectedIds) {
+            players.remove(pid);
+            log.info("对局结束，清理掉线玩家: {}", pid);
+        }
+
         players.values().forEach(p -> {
             p.setHand(List.of());
             p.setHasLooked(false);
@@ -279,7 +326,7 @@ public class GameRoom {
 
     private boolean isInactive(String pid) {
         PlayerState p = players.get(pid);
-        return p == null || p.isHasFolded() || p.isAllIn();
+        return p == null || p.isHasFolded() || p.isAllIn() || p.isDisconnected();
     }
 
     private boolean checkGameEnd() {

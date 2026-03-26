@@ -22,7 +22,7 @@ export function renderLobby() {
           <img src="${getAvatarUrl(player.avatar || player.name)}" alt="avatar" class="w-full h-full object-cover" />
         </div>
         <div>
-          <h1 class="text-xl font-headline font-extrabold text-on-surface">欢乐三张</h1>
+          <h1 class="text-xl font-headline font-extrabold text-on-surface">${player.name || '欢乐三张'}</h1>
           <div class="flex items-center gap-1 text-sm text-primary font-bold">
             <span class="material-symbols-outlined text-sm filled" style="font-variation-settings: 'FILL' 1;">monetization_on</span>
             <span id="lobby-chips">${player.chips.toLocaleString()}</span>

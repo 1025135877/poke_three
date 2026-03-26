@@ -24,6 +24,7 @@ public class PlayerState {
     private boolean hasFolded = false;
     private boolean isAllIn = false;
     private boolean isReady = false;
+    private boolean disconnected = false;
     private long currentRoundBet = 0;
 
     public static PlayerState of(String id, String name, String avatar, long chips, boolean isAI) {

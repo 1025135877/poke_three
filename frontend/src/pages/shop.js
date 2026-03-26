@@ -18,7 +18,7 @@ export function renderShop() {
         <div class="w-10 h-10 rounded-full border-3 border-primary-container overflow-hidden bg-surface-container">
           <img src="${getAvatarUrl(player.avatar || player.name)}" alt="" class="w-full h-full object-cover" />
         </div>
-        <span class="text-lg font-headline font-bold">欢乐三张</span>
+        <span class="text-lg font-headline font-bold">${player.name || '欢乐三张'}</span>
       </div>
       <button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center">
         <span class="material-symbols-outlined text-on-surface-variant text-sm">settings</span>

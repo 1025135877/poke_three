@@ -255,7 +255,7 @@ public class GameWebSocket {
                 if (s != null)
                     sendToSession(s, event.event(), event.data());
             } else {
-                // 广播给房间内所有玩家
+                // 广播给房间内所有玩家（包括断线玩家，忽略发送失败）
                 for (Map.Entry<String, PlayerState> e : room.getPlayers().entrySet()) {
                     String sid = playerSessionMap.get(e.getKey());
                     Session s = sid != null ? sessions.get(sid) : null;
@@ -275,6 +275,15 @@ public class GameWebSocket {
                         }
                     } catch (Exception e) {
                         log.error("对局记录持久化失败: {}", e.getMessage());
+                    }
+
+                    // 对局结束后，清理已断线的玩家（从 playerRoomMap 移除）
+                    for (var e : room.getPlayers().entrySet()) {
+                        if (e.getValue().isDisconnected()) {
+                            roomManager.forceRemovePlayerMapping(e.getKey());
+                            playerInfoMap.remove(e.getKey());
+                            log.info("对局结束，清理断线玩家映射: {}", e.getKey());
+                        }
                     }
                 }
             }
@@ -346,14 +355,25 @@ public class GameWebSocket {
     }
 
     /**
-     * 执行断线清理：移出房间、通知其他玩家、销毁空房间
+     * 执行断线清理：对局中视为弃牌，非对局直接移出房间
      */
     private static void cleanupDisconnectedPlayer(String playerId) {
         disconnectTimers.remove(playerId);
         log.info("断线超时，清理玩家: {}", playerId);
 
-        // 从房间移除
         GameRoom room = roomManager.getPlayerRoom(playerId);
+
+        if (room != null) {
+            GameRoom.Phase phase = room.getPhase();
+            if (phase == GameRoom.Phase.BETTING || phase == GameRoom.Phase.SHOWDOWN) {
+                // 对局进行中：标记弃牌但保留在房间，参与结算
+                room.handleDisconnect(playerId);
+                log.info("玩家在对局中掉线，已标记弃牌: {}", playerId);
+                return;
+            }
+        }
+
+        // 非对局状态：直接移出房间
         roomManager.leaveRoom(playerId);
         playerInfoMap.remove(playerId);
 
