@@ -248,6 +248,13 @@ public class GameWebSocket {
                 room.playerAction(playerId, "look", 0);
             }
 
+            case "player_compare" -> {
+                requireLogin(playerId);
+                GameRoom room = requireRoom(playerId);
+                String targetId = (String) data.get("targetId");
+                room.playerCompare(playerId, targetId);
+            }
+
             case "leave_room" -> {
                 if (playerId != null) {
                     cancelDisconnectCleanup(playerId);

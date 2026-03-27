@@ -245,6 +245,65 @@ public class GameRoom {
 
     // ===== 状态查询 =====
 
+    /**
+     * 比牌操作 — 炸金花核心玩法
+     * 规则：比牌者必须已看牌，支付比牌费（currentBet*2），双方亮牌比较，输者弃牌，平局发起者输
+     */
+    public synchronized void playerCompare(String playerId, String targetId) {
+        if (phase != Phase.BETTING)
+            throw new IllegalStateException("当前不在下注阶段");
+        if (!turnOrder.get(currentPlayerIndex).equals(playerId))
+            throw new IllegalStateException("还没轮到你操作");
+
+        PlayerState me = players.get(playerId);
+        PlayerState target = players.get(targetId);
+
+        if (me == null || me.isHasFolded())
+            throw new IllegalStateException("无效的玩家");
+        if (!me.isHasLooked())
+            throw new IllegalStateException("比牌前必须先看牌");
+        if (target == null || target.isHasFolded() || target.isAllIn())
+            throw new IllegalStateException("对方已弃牌或全押，不能比牌");
+        if (playerId.equals(targetId))
+            throw new IllegalStateException("不能跟自己比牌");
+
+        cancelTurnTimer();
+
+        // 支付比牌费用（明牌跟注费）
+        long compareCost = currentBet * 2;
+        if (me.getChips() < compareCost)
+            throw new IllegalStateException("筹码不足以比牌");
+        deductChips(me, compareCost);
+
+        // 比较牌型
+        HandResult myResult = HandEvaluator.evaluate(me.getHand());
+        HandResult targetResult = HandEvaluator.evaluate(target.getHand());
+        int cmp = HandEvaluator.compare(myResult, targetResult);
+
+        // 平局时发起者输
+        String loserId = cmp > 0 ? targetId : playerId;
+        String winnerId = cmp > 0 ? playerId : targetId;
+
+        players.get(loserId).setHasFolded(true);
+
+        Map<String, Object> compareData = new HashMap<>();
+        compareData.put("challengerId", playerId);
+        compareData.put("targetId", targetId);
+        compareData.put("winnerId", winnerId);
+        compareData.put("loserId", loserId);
+        compareData.put("challengerHand", me.getHand());
+        compareData.put("challengerHandType", myResult.getTypeName());
+        compareData.put("targetHand", target.getHand());
+        compareData.put("targetHandType", targetResult.getTypeName());
+        compareData.put("compareCost", compareCost);
+        compareData.put("pot", pot);
+        broadcast("player_compared", compareData);
+
+        log.info("比牌: {} vs {} → 赢家={}", playerId, targetId, winnerId);
+
+        nextTurn();
+    }
+
     public Map<String, Object> getState(String viewerId) {
         List<Map<String, Object>> playerList = new ArrayList<>();
         for (PlayerState p : players.values()) {

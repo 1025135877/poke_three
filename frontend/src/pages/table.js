@@ -55,6 +55,9 @@ export function renderTable() {
           <div class="bg-on-surface/70 text-white px-6 py-2 rounded-full text-base font-headline font-extrabold backdrop-blur-sm border border-white/10">
             奖池：<span id="pot-amount">${(game.pot || 0).toLocaleString()}</span>
           </div>
+          <div class="text-xs text-white/70 font-bold mt-1" id="bet-info">
+            底注 ${(game.ante || 0).toLocaleString()} · 跟注 ${((game.currentBet || 0)).toLocaleString()}
+          </div>
           <!-- 筹码装饰 -->
           <div class="flex gap-1">
             <div class="w-8 h-8 rounded-full bg-primary-container border-3 border-primary-dim shadow-lg rotate-12 -translate-x-1"></div>
@@ -180,6 +183,13 @@ function _updatePot(page) {
   if (potEl) {
     potEl.textContent = (store.state.game.pot || 0).toLocaleString();
   }
+  const betInfo = page.querySelector('#bet-info');
+  if (betInfo) {
+    const game = store.state.game;
+    const ante = (game.ante || 0).toLocaleString();
+    const bet = (game.currentBet || 0).toLocaleString();
+    betInfo.textContent = `底注 ${ante} · 跟注 ${bet}`;
+  }
 }
 
 /** 根据游戏阶段动态渲染操作栏 */
@@ -215,22 +225,33 @@ function _renderActionBar(page) {
   } else {
     // 对局阶段：显示操作按钮
     const isMyTurn = game.currentPlayer === myId && game.phase === 'betting';
-    const opacity = isMyTurn ? '1' : '0.4';
-    const pointer = isMyTurn ? 'auto' : 'none';
+    const hasFolded = myState?.hasFolded;
+    const hasLooked = myState?.hasLooked || store.state.game.hasLooked;
+    const opacity = (isMyTurn && !hasFolded) ? '1' : '0.4';
+    const pointer = (isMyTurn && !hasFolded) ? 'auto' : 'none';
+    const currentBet = game.currentBet || 100;
+    const callCost = hasLooked ? currentBet * 2 : currentBet;
+    const compareCost = currentBet * 2;
+
     bar.innerHTML = `
-      <div class="flex items-center justify-center gap-3 max-w-[400px] mx-auto" style="opacity:${opacity};pointer-events:${pointer}">
+      <div class="flex items-center justify-center gap-2 max-w-[430px] mx-auto" style="opacity:${opacity};pointer-events:${pointer}">
         <button class="flex-1 flex flex-col items-center gap-1 py-3 rounded-2xl bg-surface-container hover:bg-surface-container-high transition-all active:scale-95 duration-200" id="btn-fold">
           <span class="material-symbols-outlined text-on-surface-variant">close</span>
           <span class="text-xs font-bold text-on-surface-variant">弃牌</span>
         </button>
         <button class="flex-1 flex flex-col items-center gap-1 py-3 rounded-2xl bg-tertiary/15 hover:bg-tertiary/25 transition-all active:scale-95 duration-200 border-2 border-tertiary/30" id="btn-call">
           <span class="material-symbols-outlined text-tertiary">add</span>
-          <span class="text-xs font-bold text-tertiary">跟注</span>
+          <span class="text-[10px] font-bold text-tertiary">跟${callCost.toLocaleString()}</span>
         </button>
         <button class="flex-1 flex flex-col items-center gap-1 py-3 rounded-2xl bg-primary-container/30 hover:bg-primary-container/50 transition-all active:scale-95 duration-200 border-2 border-primary-container" id="btn-raise">
           <span class="material-symbols-outlined text-primary">trending_up</span>
           <span class="text-xs font-bold text-primary">加注</span>
         </button>
+        ${hasLooked ? `
+        <button class="flex-1 flex flex-col items-center gap-1 py-3 rounded-2xl bg-error/15 hover:bg-error/25 transition-all active:scale-95 duration-200 border-2 border-error/30" id="btn-compare">
+          <span class="material-symbols-outlined text-error">compare_arrows</span>
+          <span class="text-[10px] font-bold text-error">比${compareCost.toLocaleString()}</span>
+        </button>` : ''}
         <button class="flex-1 flex flex-col items-center gap-1 py-3 rounded-2xl bg-secondary/15 hover:bg-secondary/25 transition-all active:scale-95 duration-200 border-2 border-secondary/30" id="btn-allin">
           <span class="material-symbols-outlined text-secondary filled" style="font-variation-settings:'FILL' 1;">rocket_launch</span>
           <span class="text-xs font-bold text-secondary">全押</span>
@@ -258,8 +279,76 @@ function _bindActions(page) {
     wsClient.send('player_action', { action: 'all_in' });
   });
 
+  // 比牌按钮
+  page.querySelector('#btn-compare')?.addEventListener('click', () => {
+    _showCompareDialog(page);
+  });
+
   page.querySelector('#btn-settings')?.addEventListener('click', () => {
     wsClient.send('leave_room');
     router.navigate('/');
   });
+}
+
+/** 比牌对手选择弹窗 */
+function _showCompareDialog(page) {
+  const game = store.state.game;
+  const myId = store.state.player.id;
+  const targets = (game.players || []).filter(p =>
+    p.id !== myId && !p.hasFolded && !p.isAllIn
+  );
+
+  if (targets.length === 0) {
+    _showTableToast('没有可比牌的对手');
+    return;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+
+  overlay.innerHTML = `
+    <div style="background:var(--md-sys-color-surface, #1a1a2e);border-radius:20px;padding:20px;width:85%;max-width:340px;box-shadow:0 16px 48px rgba(0,0,0,0.5);">
+      <h3 style="text-align:center;font-size:18px;font-weight:800;color:var(--md-sys-color-on-surface, #fff);margin-bottom:16px;">
+        <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:4px;color:var(--md-sys-color-error, #ef4444);">compare_arrows</span>
+        选择比牌对手
+      </h3>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${targets.map(t => `
+          <button class="compare-target" data-id="${t.id}" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.1);cursor:pointer;transition:all 0.2s;color:var(--md-sys-color-on-surface, #fff);">
+            <img src="${getAvatarUrl(t.avatar || t.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" />
+            <div style="flex:1;text-align:left;">
+              <div style="font-weight:700;font-size:14px;">${t.name}</div>
+              <div style="font-size:11px;opacity:0.6;">筹码 ${(t.chips || 0).toLocaleString()}</div>
+            </div>
+            <span class="material-symbols-outlined" style="color:var(--md-sys-color-error, #ef4444);">swords</span>
+          </button>
+        `).join('')}
+      </div>
+      <button id="compare-cancel" style="width:100%;margin-top:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.5);font-weight:600;font-size:13px;cursor:pointer;">取消</button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#compare-cancel')?.addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+  overlay.querySelectorAll('.compare-target').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.id;
+      wsClient.send('player_compare', { targetId });
+      overlay.remove();
+    });
+  });
+}
+
+function _showTableToast(message) {
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:10000;background:#333;color:#fff;padding:10px 24px;border-radius:24px;font-size:14px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.3);animation:fadeInOut 2.5s ease;';
+  toast.textContent = message;
+  const style = document.createElement('style');
+  style.textContent = '@keyframes fadeInOut{0%{opacity:0;transform:translateX(-50%) translateY(-8px)}10%{opacity:1;transform:translateX(-50%)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-8px)}}';
+  toast.appendChild(style);
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
 }
