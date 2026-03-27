@@ -81,6 +81,7 @@ public class RoomManager {
         for (int i = 0; i < 5; i++) {
             AIPlayer ai = new AIPlayer(strategies[i % strategies.length]);
             room.addPlayer(ai.toPlayerState());
+            room.registerAI(ai); // 注册 AI 实例用于自动决策
         }
 
         return room;

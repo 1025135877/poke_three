@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.function.BiConsumer;
 
 /**
@@ -42,6 +43,10 @@ public class GameRoom {
     /** playerId -> PlayerState */
     private final Map<String, PlayerState> players = new ConcurrentHashMap<>();
 
+    /** AI playerId -> AIPlayer 实例（用于 AI 决策） */
+    @JsonIgnore
+    private final Map<String, AIPlayer> aiPlayerMap = new ConcurrentHashMap<>();
+
     @JsonIgnore
     private final CardDeck deck = new CardDeck();
 
@@ -50,7 +55,7 @@ public class GameRoom {
     private BiConsumer<String, RoomEvent> eventCallback;
 
     @JsonIgnore
-    private static final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(2);
+    private static final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(4);
     @JsonIgnore
     private ScheduledFuture<?> turnTimer;
     private static final long TURN_TIMEOUT_SECS = 30;
@@ -71,6 +76,13 @@ public class GameRoom {
             throw new IllegalStateException("游戏已开始");
         players.put(player.getId(), player);
         broadcast("player_joined", Map.of("playerId", player.getId(), "playerName", player.getName()));
+    }
+
+    /**
+     * 注册 AI 实例（用于决策回调）
+     */
+    public void registerAI(AIPlayer ai) {
+        aiPlayerMap.put(ai.getId(), ai);
     }
 
     public synchronized void removePlayer(String playerId) {
@@ -509,12 +521,66 @@ public class GameRoom {
 
     private void startTurnTimer() {
         cancelTurnTimer();
-        String timeoutPlayer = turnOrder.isEmpty() ? null : turnOrder.get(currentPlayerIndex);
-        if (timeoutPlayer == null)
+        String currentPlayerId = turnOrder.isEmpty() ? null : turnOrder.get(currentPlayerIndex);
+        if (currentPlayerId == null)
             return;
+
+        PlayerState currentPlayer = players.get(currentPlayerId);
+
+        // AI 玩家：自动决策
+        if (currentPlayer != null && currentPlayer.isAI()) {
+            AIPlayer ai = aiPlayerMap.get(currentPlayerId);
+            if (ai != null) {
+                // AI 先决定是否看牌
+                boolean shouldLook = !currentPlayer.isHasLooked() && ai.shouldLook(round);
+                AIPlayer.Decision decision = ai.decide(
+                        currentBet, currentPlayer.getChips(),
+                        currentPlayer.isHasLooked() || shouldLook,
+                        currentPlayer.getHand());
+
+                long delay = decision.delayMs();
+                turnTimer = scheduler.schedule(() -> {
+                    try {
+                        synchronized (GameRoom.this) {
+                            if (phase != Phase.BETTING)
+                                return;
+                            // AI 看牌
+                            if (shouldLook && !currentPlayer.isHasLooked()) {
+                                currentPlayer.setHasLooked(true);
+                                broadcast("player_looked", Map.of("playerId", currentPlayerId));
+                            }
+                            // AI 执行操作
+                            playerAction(currentPlayerId, decision.action(), decision.amount());
+                        }
+                    } catch (Exception e) {
+                        log.debug("AI 决策执行失败: {} - {}", currentPlayerId, e.getMessage());
+                        try {
+                            playerAction(currentPlayerId, "fold", 0);
+                        } catch (Exception ex) {
+                            log.debug("AI 兜底弃牌也失败: {}", ex.getMessage());
+                        }
+                    }
+                }, delay, TimeUnit.MILLISECONDS);
+            } else {
+                // 没有 AI 实例，2秒后自动跟注
+                turnTimer = scheduler.schedule(() -> {
+                    try {
+                        playerAction(currentPlayerId, "call", 0);
+                    } catch (Exception e) {
+                        try {
+                            playerAction(currentPlayerId, "fold", 0);
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }, 2000, TimeUnit.MILLISECONDS);
+            }
+            return;
+        }
+
+        // 真人玩家：超时弃牌
         turnTimer = scheduler.schedule(() -> {
             try {
-                playerAction(timeoutPlayer, "fold", 0);
+                playerAction(currentPlayerId, "fold", 0);
             } catch (Exception e) {
                 log.debug("超时弃牌失败: {}", e.getMessage());
             }
