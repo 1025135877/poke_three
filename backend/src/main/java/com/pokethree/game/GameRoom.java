@@ -122,6 +122,14 @@ public class GameRoom {
         p.setReady(true);
         broadcast("player_ready", Map.of("playerId", playerId));
 
+        // AI 玩家自动跟随准备
+        for (PlayerState ps : players.values()) {
+            if (ps.isAI() && !ps.isReady()) {
+                ps.setReady(true);
+                broadcast("player_ready", Map.of("playerId", ps.getId()));
+            }
+        }
+
         long readyCount = players.values().stream().filter(PlayerState::isReady).count();
         // 只统计未掉线的玩家
         long totalActive = players.values().stream().filter(pl -> !pl.isDisconnected()).count();
