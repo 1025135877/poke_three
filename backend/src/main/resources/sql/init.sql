@@ -37,3 +37,36 @@ CREATE INDEX IF NOT EXISTS idx_player_chips ON t_player(chips DESC);
 CREATE INDEX IF NOT EXISTS idx_record_player ON t_game_record(player_id);
 CREATE INDEX IF NOT EXISTS idx_record_room ON t_game_record(room_id);
 CREATE INDEX IF NOT EXISTS idx_record_played_at ON t_game_record(played_at DESC);
+
+-- Token 存储表
+CREATE TABLE IF NOT EXISTS t_token (
+    token       TEXT     NOT NULL PRIMARY KEY,
+    player_id   TEXT     NOT NULL UNIQUE,
+    created_at  TEXT     DEFAULT (datetime('now', 'localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_token_player ON t_token(player_id);
+
+-- 每日签到记录表
+CREATE TABLE IF NOT EXISTS t_daily_checkin (
+    id           INTEGER  PRIMARY KEY AUTOINCREMENT,
+    player_id    TEXT     NOT NULL,
+    checkin_date TEXT     NOT NULL,
+    day_count    INTEGER  DEFAULT 1,
+    reward_chips INTEGER  DEFAULT 0,
+    created_at   TEXT     DEFAULT (datetime('now', 'localtime')),
+    UNIQUE(player_id, checkin_date)
+);
+CREATE INDEX IF NOT EXISTS idx_checkin_player ON t_daily_checkin(player_id);
+
+-- 每日任务记录表
+CREATE TABLE IF NOT EXISTS t_daily_task (
+    id           INTEGER  PRIMARY KEY AUTOINCREMENT,
+    player_id    TEXT     NOT NULL,
+    task_date    TEXT     NOT NULL,
+    task_type    TEXT     NOT NULL,
+    is_completed INTEGER  DEFAULT 0,
+    is_claimed   INTEGER  DEFAULT 0,
+    created_at   TEXT     DEFAULT (datetime('now', 'localtime')),
+    UNIQUE(player_id, task_date, task_type)
+);
+CREATE INDEX IF NOT EXISTS idx_task_player ON t_daily_task(player_id);

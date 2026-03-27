@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * 认证控制器 — 注册、登录、获取当前用户
+ * 认证控制器 — 注册、登录、获取当前用户、签到、任务、商城
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -70,6 +70,17 @@ public class AuthController {
     }
 
     /**
+     * 登出
+     * POST /api/auth/logout
+     * Header: Authorization: <token>
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestHeader(value = "Authorization", required = false) String token) {
+        authService.logout(token);
+        return ResponseEntity.ok(Map.of("code", 0, "message", "已登出"));
+    }
+
+    /**
      * 获取玩家游戏记录
      * GET /api/auth/records?limit=20
      * Header: Authorization: <token>
@@ -92,7 +103,7 @@ public class AuthController {
     /**
      * 排行榜
      * GET /api/auth/leaderboard?limit=50
-     * Header: Authorization: <token> (可选，用于获取自己的排名)
+     * Header: Authorization: <token> (可选)
      */
     @GetMapping("/leaderboard")
     public ResponseEntity<?> leaderboard(
@@ -104,5 +115,115 @@ public class AuthController {
         }
         var result = authService.getLeaderboard(playerId, limit);
         return ResponseEntity.ok(Map.of("code", 0, "data", result));
+    }
+
+    // ===================================================================
+    // 每日签到
+    // ===================================================================
+
+    /**
+     * 每日签到
+     * POST /api/auth/checkin
+     */
+    @PostMapping("/checkin")
+    public ResponseEntity<?> checkin(@RequestHeader(value = "Authorization", required = false) String token) {
+        String playerId = requireAuth(token);
+        if (playerId == null) {
+            return ResponseEntity.ok(Map.of("code", 1, "message", "未登录"));
+        }
+        try {
+            var result = authService.dailyCheckin(playerId);
+            return ResponseEntity.ok(Map.of("code", 0, "data", result));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(Map.of("code", 1, "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * 签到状态
+     * GET /api/auth/checkin/status
+     */
+    @GetMapping("/checkin/status")
+    public ResponseEntity<?> checkinStatus(@RequestHeader(value = "Authorization", required = false) String token) {
+        String playerId = requireAuth(token);
+        if (playerId == null) {
+            return ResponseEntity.ok(Map.of("code", 1, "message", "未登录"));
+        }
+        var result = authService.getCheckinStatus(playerId);
+        return ResponseEntity.ok(Map.of("code", 0, "data", result));
+    }
+
+    // ===================================================================
+    // 每日任务
+    // ===================================================================
+
+    /**
+     * 获取每日任务列表
+     * GET /api/auth/tasks
+     */
+    @GetMapping("/tasks")
+    public ResponseEntity<?> tasks(@RequestHeader(value = "Authorization", required = false) String token) {
+        String playerId = requireAuth(token);
+        if (playerId == null) {
+            return ResponseEntity.ok(Map.of("code", 1, "message", "未登录"));
+        }
+        var result = authService.getDailyTasks(playerId);
+        return ResponseEntity.ok(Map.of("code", 0, "data", result));
+    }
+
+    /**
+     * 领取任务奖励
+     * POST /api/auth/tasks/claim
+     * Body: { "taskType": "play_1" }
+     */
+    @PostMapping("/tasks/claim")
+    public ResponseEntity<?> claimTask(
+            @RequestHeader(value = "Authorization", required = false) String token,
+            @RequestBody Map<String, String> body) {
+        String playerId = requireAuth(token);
+        if (playerId == null) {
+            return ResponseEntity.ok(Map.of("code", 1, "message", "未登录"));
+        }
+        try {
+            String taskType = body.get("taskType");
+            var result = authService.claimTaskReward(playerId, taskType);
+            return ResponseEntity.ok(Map.of("code", 0, "data", result));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(Map.of("code", 1, "message", e.getMessage()));
+        }
+    }
+
+    // ===================================================================
+    // 商城购买
+    // ===================================================================
+
+    /**
+     * 商城购买
+     * POST /api/auth/shop/purchase
+     * Body: { "itemId": "coins_100k" }
+     */
+    @PostMapping("/shop/purchase")
+    public ResponseEntity<?> purchase(
+            @RequestHeader(value = "Authorization", required = false) String token,
+            @RequestBody Map<String, String> body) {
+        String playerId = requireAuth(token);
+        if (playerId == null) {
+            return ResponseEntity.ok(Map.of("code", 1, "message", "未登录"));
+        }
+        try {
+            String itemId = body.get("itemId");
+            var result = authService.purchaseItem(playerId, itemId);
+            return ResponseEntity.ok(Map.of("code", 0, "data", result));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(Map.of("code", 1, "message", e.getMessage()));
+        }
+    }
+
+    // ===== 辅助 =====
+
+    private String requireAuth(String token) {
+        if (token == null || token.isBlank())
+            return null;
+        return authService.getPlayerIdByToken(token);
     }
 }

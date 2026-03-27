@@ -57,6 +57,35 @@ public class RoomManager {
         return room;
     }
 
+    /**
+     * 人机匹配 — 创建带 5 个 AI 的房间
+     */
+    public GameRoom aiMatch(PlayerState player, String roomType) {
+        RoomConfig config = ROOM_TYPES.get(roomType);
+        if (config == null)
+            throw new IllegalArgumentException("未知房间类型: " + roomType);
+
+        // 已在房间中则先离开
+        leaveRoom(player.getId());
+
+        String roomId = "ai_" + UUID.randomUUID().toString().substring(0, 8);
+        GameRoom room = new GameRoom(roomId, roomType, config.ante(), 6);
+        rooms.put(roomId, room);
+
+        // 添加真人玩家
+        room.addPlayer(player);
+        playerRoomMap.put(player.getId(), room.getId());
+
+        // 添加 5 个 AI，使用不同策略
+        AIPlayer.Strategy[] strategies = AIPlayer.Strategy.values();
+        for (int i = 0; i < 5; i++) {
+            AIPlayer ai = new AIPlayer(strategies[i % strategies.length]);
+            room.addPlayer(ai.toPlayerState());
+        }
+
+        return room;
+    }
+
     public GameRoom getRoom(String roomId) {
         return rooms.get(roomId);
     }

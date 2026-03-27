@@ -2,6 +2,7 @@ package com.pokethree.ws;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pokethree.game.*;
+import com.pokethree.service.AuthService;
 import com.pokethree.service.GameService;
 import com.pokethree.service.TokenStore;
 import jakarta.websocket.*;
@@ -33,6 +34,7 @@ public class GameWebSocket {
     private static RoomManager roomManager;
     private static GameService gameService;
     private static TokenStore tokenStore;
+    private static AuthService authService;
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /** sessionId -> Session */
@@ -64,6 +66,11 @@ public class GameWebSocket {
     @Autowired
     public void setTokenStore(TokenStore ts) {
         GameWebSocket.tokenStore = ts;
+    }
+
+    @Autowired
+    public void setAuthService(AuthService as) {
+        GameWebSocket.authService = as;
     }
 
     // ===== 生命周期 =====
@@ -189,6 +196,29 @@ public class GameWebSocket {
                 broadcastRoomState(room, playerId);
             }
 
+            case "ai_match" -> {
+                requireLogin(playerId);
+                String roomType = data.get("roomType") instanceof String s ? s : "beginner";
+                PlayerState player = playerInfoMap.get(playerId);
+
+                // 金币校验
+                RoomManager.RoomConfig config = RoomManager.ROOM_TYPES.get(roomType);
+                if (config != null && player.getChips() < config.minChips()) {
+                    sendToSession(session, "match_failed", Map.of(
+                            "message", "金币不足，至少需要 " + config.minChips() + " 金币"));
+                    return;
+                }
+
+                GameRoom room = roomManager.aiMatch(player, roomType);
+                setupRoomCallback(room);
+
+                sendToSession(session, "room_joined", Map.of(
+                        "roomId", room.getId(),
+                        "roomType", room.getRoomType(),
+                        "isAIRoom", true,
+                        "state", room.getState(playerId)));
+            }
+
             case "player_ready" -> {
                 requireLogin(playerId);
                 GameRoom room = requireRoom(playerId);
@@ -265,13 +295,39 @@ public class GameWebSocket {
                         sendToSession(s, event.event(), payload);
                     }
                 }
-                // 对局结束持久化
+                // 对局结束持久化 + 任务进度更新
                 if ("game_over".equals(event.event())) {
                     try {
                         @SuppressWarnings("unchecked")
                         var results = (java.util.List<Map<String, Object>>) event.data().get("results");
                         if (results != null) {
                             gameService.saveGameRecords(room.getId(), room.getRoomType(), results);
+
+                            // 更新每日任务进度
+                            boolean isAIRoom = room.getId().startsWith("ai_");
+                            for (Map<String, Object> r : results) {
+                                String pid = (String) r.get("playerId");
+                                if (pid == null || pid.startsWith("ai_"))
+                                    continue;
+
+                                // 对战任务
+                                try {
+                                    authService.updateTaskProgress(pid, "play_1");
+                                    authService.updateTaskProgress(pid, "play_3"); // play_3 需特殊处理，暂简化
+
+                                    // 获胜任务
+                                    if (Boolean.TRUE.equals(r.get("isWinner"))) {
+                                        authService.updateTaskProgress(pid, "win_1");
+                                    }
+
+                                    // 人机对战任务
+                                    if (isAIRoom) {
+                                        authService.updateTaskProgress(pid, "ai_play");
+                                    }
+                                } catch (Exception ex) {
+                                    log.warn("更新任务进度失败: {}", ex.getMessage());
+                                }
+                            }
                         }
                     } catch (Exception e) {
                         log.error("对局记录持久化失败: {}", e.getMessage());

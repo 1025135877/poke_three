@@ -207,19 +207,25 @@ export function renderAuth() {
       const data = json.data;
       localStorage.setItem('token', data.token);
       localStorage.setItem('playerId', data.playerId);
-
-      // 更新 Store
-      store.update('player', {
+      
+      const playerSnapshot = {
         id: data.playerId,
         name: data.name,
         chips: data.chips,
         diamonds: data.diamonds,
-        avatar: data.avatar
-      });
+        avatar: data.avatar || ''
+      };
+      localStorage.setItem('playerSnapshot', JSON.stringify(playerSnapshot));
+
+      // 更新 Store
+      store.update('player', playerSnapshot);
       store.set('isLoggedIn', true);
 
       // 连接 WebSocket
       wsClient.connect();
+
+      // 提示成功
+      store.set('ui.toast', { message: isRegister ? '注册成功！' : '登录成功！', type: 'success' });
 
       // 跳转到大厅
       router.navigate('/');

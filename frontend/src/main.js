@@ -50,9 +50,27 @@ async function init() {
         updateNavbar(path);
     });
 
-    // 检查登录态
+    // 检查登录态并尝试恢复会话
     const token = localStorage.getItem('token');
+    const playerSnapshot = localStorage.getItem('playerSnapshot');
+    
     if (token) {
+        // 1. 优先显示缓存数据（提升稳定性与流畅度）
+        if (playerSnapshot) {
+            try {
+                const data = JSON.parse(playerSnapshot);
+                store.update('player', data);
+            } catch (e) {
+                console.error('解析缓存快照失败', e);
+            }
+        }
+        store.set('isLoggedIn', true);
+        wsClient.connect();
+
+        // 2. 立即初始化路由（进入大厅）
+        router.init(pageContainer);
+
+        // 3. 后台异步校验 token 有效性并同步最新数据
         try {
             const res = await fetch('/api/auth/me', {
                 headers: { 'Authorization': token }
@@ -60,9 +78,9 @@ async function init() {
             const json = await res.json();
 
             if (json.code === 0) {
-                // token 有效，恢复玩家数据
+                // token 有效，更新数据快照
                 const data = json.data;
-                store.update('player', {
+                const freshData = {
                     id: data.playerId,
                     name: data.name,
                     chips: data.chips,
@@ -71,25 +89,16 @@ async function init() {
                     totalGames: data.totalGames || 0,
                     winGames: data.winGames || 0,
                     maxWin: data.maxWin || 0
-                });
-                store.set('isLoggedIn', true);
-
-                // 连接 WebSocket
-                wsClient.connect();
-
-                // 初始化路由（进入大厅）
-                router.init(pageContainer);
+                };
+                store.update('player', freshData);
+                localStorage.setItem('playerSnapshot', JSON.stringify(freshData));
             } else {
-                // token 过期，清除并跳转登录
-                localStorage.removeItem('token');
-                localStorage.removeItem('playerId');
-                router.init(pageContainer);
-                router.navigate('/auth');
+                // token 已失效，清理并跳转
+                handleAuthFailure(pageContainer);
             }
         } catch (e) {
-            // 网络错误（后端未启动），跳转登录页
-            router.init(pageContainer);
-            router.navigate('/auth');
+            console.warn('后台校验失败（网络问题），将继续使用缓存', e);
+            // 如果是因为网络问题失败，暂时保留缓存状态，不强制退出
         }
     } else {
         // 未登录，跳转登录页
@@ -102,6 +111,23 @@ async function init() {
     navbar.style.display = FULL_SCREEN_PAGES.includes(initialPath) ? 'none' : 'block';
 
     console.log('🃏 欢乐三张已启动!');
+}
+
+/**
+ * 处理认证失败：清理缓存并跳转登录页
+ */
+function handleAuthFailure(pageContainer) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('playerId');
+    localStorage.removeItem('playerSnapshot');
+    store.reset();
+    
+    // 如果还没初始化过，先初始化
+    if (!router.container) {
+        router.init(pageContainer);
+    }
+    router.navigate('/auth');
+    store.set('ui.toast', { message: '登录已过期，请重新登录', type: 'error' });
 }
 
 // DOM 就绪后初始化
