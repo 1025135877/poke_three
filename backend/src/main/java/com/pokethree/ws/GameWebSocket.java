@@ -169,6 +169,11 @@ public class GameWebSocket {
                 requireLogin(playerId);
                 String roomType = data.get("roomType") instanceof String s ? s : "beginner";
                 PlayerState player = playerInfoMap.get(playerId);
+                if (player == null) {
+                    // 断线重连等场景下 playerInfoMap 可能被清理，从数据库重建
+                    player = gameService.getOrCreatePlayer(playerId, null, 888230L);
+                    playerInfoMap.put(playerId, player);
+                }
 
                 // 金币校验
                 RoomManager.RoomConfig config = RoomManager.ROOM_TYPES.get(roomType);
@@ -200,6 +205,10 @@ public class GameWebSocket {
                 requireLogin(playerId);
                 String roomType = data.get("roomType") instanceof String s ? s : "beginner";
                 PlayerState player = playerInfoMap.get(playerId);
+                if (player == null) {
+                    player = gameService.getOrCreatePlayer(playerId, null, 888230L);
+                    playerInfoMap.put(playerId, player);
+                }
 
                 // 金币校验
                 RoomManager.RoomConfig config = RoomManager.ROOM_TYPES.get(roomType);
