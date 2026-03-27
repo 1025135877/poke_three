@@ -32,7 +32,7 @@ export function renderLobby() {
       <div class="flex items-center gap-2">
         <button id="btn-checkin" class="flex items-center gap-1 px-4 py-2 rounded-full bg-secondary text-on-secondary font-bold text-sm shadow-md hover:shadow-lg active:scale-95 transition-all duration-200">
           <span class="material-symbols-outlined text-sm filled" style="font-variation-settings: 'FILL' 1;">event_available</span>
-          签到
+          <span id="checkin-label">签到</span>
         </button>
         <button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors active:scale-90 duration-200">
           <span class="material-symbols-outlined text-on-surface-variant">settings</span>
@@ -187,11 +187,36 @@ export function renderLobby() {
       _showCheckinDialog(page);
     });
 
+    // 加载签到状态
+    _loadCheckinStatus(page);
+
     // 加载今日任务
     _loadDailyTasks(page);
   }, 0);
 
   return page;
+}
+
+// ===== 签到状态加载 =====
+
+async function _loadCheckinStatus(page) {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+  try {
+    const res = await fetch('/api/auth/checkin/status', { headers: { 'Authorization': token } });
+    const json = await res.json();
+    if (json.code === 0 && json.data.checkedInToday) {
+      const btn = page.querySelector('#btn-checkin');
+      const label = page.querySelector('#checkin-label');
+      if (btn) {
+        btn.classList.remove('bg-secondary', 'text-on-secondary', 'shadow-md', 'hover:shadow-lg');
+        btn.classList.add('bg-surface-container', 'text-on-surface-variant');
+      }
+      if (label) label.textContent = '已签到';
+    }
+  } catch (e) {
+    // 静默失败
+  }
 }
 
 // ===== 签到弹窗 =====
