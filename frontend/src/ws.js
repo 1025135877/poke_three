@@ -169,6 +169,11 @@ class WebSocketClient {
                 }
                 break;
 
+            case 'player_compared':
+                // 比牌结果展示
+                this._showCompareResult(data);
+                break;
+
             case 'deal_cards':
                 store.set('game.myCards', data.cards);
                 break;
@@ -217,6 +222,73 @@ class WebSocketClient {
                 // 心跳响应
                 break;
         }
+    }
+
+    _showCompareResult(data) {
+        const myId = store.state.player?.id;
+        const players = store.state.game?.players || [];
+        const challenger = players.find(p => p.id === data.challengerId) || { name: '玩家A' };
+        const target = players.find(p => p.id === data.targetId) || { name: '玩家B' };
+        const iWon = data.winnerId === myId;
+        const iLost = data.loserId === myId;
+        const isMyFight = data.challengerId === myId || data.targetId === myId;
+
+        // 构建手牌显示
+        const cardToEmoji = (card) => {
+            const suits = { 'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣' };
+            if (!card) return '🂠';
+            const suit = suits[card.suit] || card.suit || '';
+            const rank = card.rank || card.value || '';
+            return `${suit}${rank}`;
+        };
+        const formatHand = (cards) => (cards || []).map(cardToEmoji).join(' ');
+
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);animation:fadeIn 0.3s ease;';
+
+        const winColor = '#22c55e';
+        const loseColor = '#ef4444';
+
+        overlay.innerHTML = `
+            <style>
+                @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+                @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+                @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+                .compare-card{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;padding:16px;border-radius:16px;animation:slideUp 0.5s ease}
+                .compare-badge{font-size:12px;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:1px;}
+            </style>
+            <div style="width:90%;max-width:380px;background:linear-gradient(145deg,#1a1a2e 0%,#16213e 100%);border-radius:24px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.6);animation:slideUp 0.4s ease">
+                <h3 style="text-align:center;font-size:20px;font-weight:900;color:#fff;margin-bottom:20px;">
+                    ⚔️ 比牌结果
+                </h3>
+                <div style="display:flex;gap:12px;align-items:stretch;">
+                    <div class="compare-card" style="background:${data.winnerId === data.challengerId ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'}; border:2px solid ${data.winnerId === data.challengerId ? winColor : loseColor}40;">
+                        <div style="font-size:14px;font-weight:700;color:#fff;">${challenger.name}</div>
+                        <div style="font-size:22px;letter-spacing:4px;color:#fff;font-weight:600;">${formatHand(data.challengerHand)}</div>
+                        <div style="font-size:12px;color:rgba(255,255,255,0.6);">${data.challengerHandType || ''}</div>
+                        <span class="compare-badge" style="background:${data.winnerId === data.challengerId ? winColor : loseColor}; color:#fff;">
+                            ${data.winnerId === data.challengerId ? '👑 胜' : '💀 败'}
+                        </span>
+                    </div>
+                    <div style="display:flex;align-items:center;font-size:24px;color:rgba(255,255,255,0.3);font-weight:900;">VS</div>
+                    <div class="compare-card" style="background:${data.winnerId === data.targetId ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'}; border:2px solid ${data.winnerId === data.targetId ? winColor : loseColor}40;">
+                        <div style="font-size:14px;font-weight:700;color:#fff;">${target.name}</div>
+                        <div style="font-size:22px;letter-spacing:4px;color:#fff;font-weight:600;">${formatHand(data.targetHand)}</div>
+                        <div style="font-size:12px;color:rgba(255,255,255,0.6);">${data.targetHandType || ''}</div>
+                        <span class="compare-badge" style="background:${data.winnerId === data.targetId ? winColor : loseColor}; color:#fff;">
+                            ${data.winnerId === data.targetId ? '👑 胜' : '💀 败'}
+                        </span>
+                    </div>
+                </div>
+                ${isMyFight ? `<div style="text-align:center;margin-top:16px;font-size:18px;font-weight:800;color:${iWon ? winColor : loseColor};animation:pulse 1s infinite;">
+                    ${iWon ? '🎉 你赢了！' : '😢 你输了...'}
+                </div>` : ''}
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', () => overlay.remove());
+        setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 3500);
     }
 
     _syncGameState(state) {
