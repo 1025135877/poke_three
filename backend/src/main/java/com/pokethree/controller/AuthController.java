@@ -219,6 +219,24 @@ public class AuthController {
         }
     }
 
+    // ===================================================================
+    // 道具背包
+    // ===================================================================
+
+    /**
+     * 获取玩家道具列表
+     * GET /api/auth/items
+     */
+    @GetMapping("/items")
+    public ResponseEntity<?> items(@RequestHeader(value = "Authorization", required = false) String token) {
+        String playerId = requireAuth(token);
+        if (playerId == null) {
+            return ResponseEntity.ok(Map.of("code", 1, "message", "未登录"));
+        }
+        var items = authService.getPlayerItems(playerId);
+        return ResponseEntity.ok(Map.of("code", 0, "data", items));
+    }
+
     // ===== 辅助 =====
 
     private String requireAuth(String token) {

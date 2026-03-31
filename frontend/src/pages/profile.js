@@ -84,19 +84,23 @@ async function loadProfileData(page) {
 
   let playerData = null;
   let records = [];
+  let playerItems = {};
 
   try {
-    // 并行请求玩家信息和游戏记录
-    const [meRes, recordsRes] = await Promise.all([
+    // 并行请求玩家信息、游戏记录和道具
+    const [meRes, recordsRes, itemsRes] = await Promise.all([
       fetch('/api/auth/me', { headers: { 'Authorization': token } }),
-      fetch('/api/auth/records?limit=20', { headers: { 'Authorization': token } })
+      fetch('/api/auth/records?limit=20', { headers: { 'Authorization': token } }),
+      fetch('/api/auth/items', { headers: { 'Authorization': token } })
     ]);
 
     const meJson = await meRes.json();
     const recordsJson = await recordsRes.json();
+    const itemsJson = await itemsRes.json();
 
     if (meJson.code === 0) playerData = meJson.data;
     if (recordsJson.code === 0) records = recordsJson.data || [];
+    if (itemsJson.code === 0) playerItems = itemsJson.data || {};
   } catch (e) {
     console.error('加载用户数据失败:', e);
   }
@@ -119,13 +123,13 @@ async function loadProfileData(page) {
     maxWin: playerData.maxWin
   });
 
-  renderFullProfile(page, playerData, records);
+  renderFullProfile(page, playerData, records, playerItems);
 }
 
 /**
  * 渲染完整个人中心
  */
-function renderFullProfile(page, player, records) {
+function renderFullProfile(page, player, records, items = {}) {
   const winRate = player.totalGames > 0
     ? ((player.winGames / player.totalGames) * 100).toFixed(1)
     : '0.0';
@@ -193,6 +197,17 @@ function renderFullProfile(page, player, records) {
         <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full"></div>
       </section>
 
+      <!-- 我的道具 -->
+      <section>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-lg font-headline font-extrabold text-on-surface">我的道具</h3>
+        </div>
+        <div class="flex gap-3">
+          ${_renderItemCard('🔍', '透视卡', items.xray_card || 0, '随机窥探对手一张牌')}
+          ${_renderItemCard('🔄', '换牌卡', items.swap_card || 0, '盲换手中一张牌')}
+        </div>
+      </section>
+
       <!-- 成就勋章 -->
       <section>
         <div class="flex items-center justify-between mb-3">
@@ -223,6 +238,24 @@ function renderFullProfile(page, player, records) {
         </div>
         `}
       </section>
+  `;
+}
+
+function _renderItemCard(emoji, name, count, desc) {
+  return `
+    <div class="flex-1 card-elevated rounded-2xl p-4 border-2 ${count > 0 ? 'border-primary-container/30' : 'border-outline-variant/15'}">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-full ${count > 0 ? 'bg-primary-container/30' : 'bg-surface-container'} flex items-center justify-center text-2xl">${emoji}</div>
+        <div class="flex-1">
+          <div class="text-sm font-bold text-on-surface">${name}</div>
+          <div class="text-[10px] text-on-surface-variant mt-0.5">${desc}</div>
+        </div>
+      </div>
+      <div class="mt-3 text-center">
+        <span class="text-2xl font-headline font-extrabold ${count > 0 ? 'text-primary' : 'text-on-surface-variant/40'}">${count}</span>
+        <span class="text-xs text-on-surface-variant ml-1">张</span>
+      </div>
+    </div>
   `;
 }
 
