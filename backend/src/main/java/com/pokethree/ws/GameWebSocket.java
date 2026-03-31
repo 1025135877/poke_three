@@ -329,7 +329,8 @@ public class GameWebSocket {
                                 // 对战任务
                                 try {
                                     authService.updateTaskProgress(pid, "play_1");
-                                    authService.updateTaskProgress(pid, "play_3"); // play_3 需特殊处理，暂简化
+                                    authService.updateTaskProgress(pid, "play_3"); // play_3 任务需累计3局，进度由
+                                                                                   // updateTaskProgress 自动跟踪
 
                                     // 获胜任务
                                     if (Boolean.TRUE.equals(r.get("isWinner"))) {

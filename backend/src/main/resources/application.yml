@@ -18,6 +18,7 @@ spring:
     init:
       mode: always
       schema-locations: classpath:sql/init.sql
+      continue-on-error: true
 
 mybatis-plus:
   configuration:

@@ -42,11 +42,16 @@ public class AuthService {
 
     // ===== 每日任务定义 =====
     private static final List<Map<String, Object>> TASK_DEFINITIONS = List.of(
-            Map.of("type", "checkin", "name", "每日签到", "desc", "完成今日签到", "reward", 2000, "icon", "event_available"),
-            Map.of("type", "play_1", "name", "对战一局", "desc", "完成1局游戏", "reward", 5000, "icon", "sports_esports"),
-            Map.of("type", "play_3", "name", "对战三局", "desc", "完成3局游戏", "reward", 15000, "icon", "emoji_events"),
-            Map.of("type", "win_1", "name", "首次获胜", "desc", "赢得1局游戏", "reward", 10000, "icon", "military_tech"),
-            Map.of("type", "ai_play", "name", "挑战人机", "desc", "完成1局人机对战", "reward", 3000, "icon", "smart_toy"));
+            Map.of("type", "checkin", "name", "每日签到", "desc", "完成今日签到", "reward", 2000, "icon", "event_available",
+                    "target", 1),
+            Map.of("type", "play_1", "name", "对战一局", "desc", "完成1局游戏", "reward", 5000, "icon", "sports_esports",
+                    "target", 1),
+            Map.of("type", "play_3", "name", "对战三局", "desc", "完成3局游戏", "reward", 15000, "icon", "emoji_events",
+                    "target", 3),
+            Map.of("type", "win_1", "name", "首次获胜", "desc", "赢得1局游戏", "reward", 10000, "icon", "military_tech",
+                    "target", 1),
+            Map.of("type", "ai_play", "name", "挑战人机", "desc", "完成1局人机对战", "reward", 3000, "icon", "smart_toy", "target",
+                    1));
 
     // ===== 商城商品定义 =====
     private static final Map<String, Map<String, Object>> SHOP_ITEMS = Map.of(
@@ -383,6 +388,7 @@ public class AuthService {
             Map<String, Object> item = new HashMap<>(def);
             item.put("isCompleted", task != null && task.getIsCompleted() == 1);
             item.put("isClaimed", task != null && task.getIsClaimed() == 1);
+            item.put("progress", task != null ? (task.getProgress() != null ? task.getProgress() : 0) : 0);
             result.add(item);
         }
 
@@ -390,10 +396,16 @@ public class AuthService {
     }
 
     /**
-     * 更新任务进度
+     * 更新任务进度（支持累计型任务，如 play_3 需完成3局）
      */
     public void updateTaskProgress(String playerId, String taskType) {
         String today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
+
+        // 查询任务目标值
+        int target = TASK_DEFINITIONS.stream()
+                .filter(d -> taskType.equals(d.get("type")))
+                .map(d -> (Integer) d.get("target"))
+                .findFirst().orElse(1);
 
         // 确保任务记录存在
         DailyTask task = taskMapper.selectOne(
@@ -403,18 +415,26 @@ public class AuthService {
                         .eq(DailyTask::getTaskType, taskType));
 
         if (task == null) {
+            // 首次记录：progress=1，如果 target 为1则直接完成
+            boolean completed = (target <= 1);
             task = new DailyTask()
                     .setPlayerId(playerId)
                     .setTaskDate(today)
                     .setTaskType(taskType)
-                    .setIsCompleted(1)
+                    .setProgress(1)
+                    .setIsCompleted(completed ? 1 : 0)
                     .setIsClaimed(0);
             taskMapper.insert(task);
         } else if (task.getIsCompleted() == 0) {
+            // 已有记录但未完成：累加进度
+            int newProgress = (task.getProgress() != null ? task.getProgress() : 0) + 1;
+            boolean completed = (newProgress >= target);
             taskMapper.update(null, new LambdaUpdateWrapper<DailyTask>()
                     .eq(DailyTask::getId, task.getId())
-                    .set(DailyTask::getIsCompleted, 1));
+                    .set(DailyTask::getProgress, newProgress)
+                    .set(DailyTask::getIsCompleted, completed ? 1 : 0));
         }
+        // 已完成的任务不再更新进度
     }
 
     /**
