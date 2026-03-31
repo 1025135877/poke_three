@@ -297,20 +297,19 @@ class WebSocketClient {
         const isMyFight = data.challengerId === myId || data.targetId === myId;
 
         // 构建手牌显示
-        // 构建手牌显示
         const getCardHtml = (card, size = 'sm') => {
-            if (!card) return '<div class="w-10 h-14 rounded bg-surface-container opacity-50 mx-0.5 border border-outline-variant/20"></div>';
+            if (!card) return '<div class="w-8 h-11 rounded bg-surface-container opacity-50 border border-outline-variant/20" style="margin-left:-2px;"></div>';
             const suit = card.symbol || { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' }[card.suit] || '?';
             const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
             const display = card.display || String(card.value || '');
 
-            const sizeClass = size === 'sm' ? 'w-10 h-14 text-[10px]' : size === 'md' ? 'w-16 h-24 text-sm' : 'w-24 h-36 text-lg';
-            const symbolSize = size === 'sm' ? 'text-xl' : size === 'md' ? 'text-3xl' : 'text-5xl';
-            const padding = size === 'sm' ? 'top-1 left-1 bottom-1 right-1' : 'top-1.5 left-1.5 bottom-1.5 right-1.5';
+            const sizeClass = size === 'sm' ? 'w-8 h-11 text-[9px]' : size === 'md' ? 'w-16 h-24 text-sm' : 'w-24 h-36 text-lg';
+            const symbolSize = size === 'sm' ? 'text-base' : size === 'md' ? 'text-3xl' : 'text-5xl';
+            const padding = size === 'sm' ? 'top-0.5 left-0.5 bottom-0.5 right-0.5' : 'top-1.5 left-1.5 bottom-1.5 right-1.5';
             const color = isRed ? '#ef4444' : '#1e293b';
 
             return `
-                <div class="${sizeClass} relative flex items-center justify-center bg-white rounded shadow-sm flex-shrink-0 mx-0.5" style="color: ${color}; border: 1px solid rgba(0,0,0,0.15);">
+                <div class="${sizeClass} relative flex items-center justify-center bg-white rounded shadow-sm flex-shrink-0" style="margin-left:-2px;color: ${color}; border: 1px solid rgba(0,0,0,0.15);">
                     <span class="absolute ${padding} font-headline font-extrabold leading-none">${display}</span>
                     <span class="${symbolSize} select-none" style="line-height: 1;">${suit}</span>
                 </div>
@@ -329,27 +328,28 @@ class WebSocketClient {
                 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
                 @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
                 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
-                .compare-card{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;padding:16px;border-radius:16px;animation:slideUp 0.5s ease}
-                .compare-badge{font-size:12px;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:1px;}
+                .compare-card{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;padding:12px 6px;border-radius:12px;animation:slideUp 0.5s ease;overflow:hidden;min-width:0;}
+                .compare-badge{font-size:11px;font-weight:800;padding:2px 10px;border-radius:20px;letter-spacing:1px;white-space:nowrap;}
+                .vs-text{display:flex;align-items:center;font-size:20px;color:rgba(255,255,255,0.3);font-weight:900;margin:0 -4px;flex-shrink:0;}
             </style>
-            <div style="width:90%;max-width:380px;background:linear-gradient(145deg,#1a1a2e 0%,#16213e 100%);border-radius:24px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.6);animation:slideUp 0.4s ease">
-                <h3 style="text-align:center;font-size:20px;font-weight:900;color:#fff;margin-bottom:20px;">
+            <div style="width:92%;max-width:400px;background:linear-gradient(145deg,#1a1a2e 0%,#16213e 100%);border-radius:24px;padding:20px 16px;box-shadow:0 20px 60px rgba(0,0,0,0.6);animation:slideUp 0.4s ease">
+                <h3 style="text-align:center;font-size:18px;font-weight:900;color:#fff;margin-bottom:16px;">
                     ⚔️ 比牌结果
                 </h3>
-                <div style="display:flex;gap:12px;align-items:stretch;">
+                <div style="display:flex;gap:6px;align-items:stretch;justify-content:center;">
                     <div class="compare-card" style="background:${data.winnerId === data.challengerId ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'}; border:2px solid ${data.winnerId === data.challengerId ? winColor : loseColor}40;">
-                        <div style="font-size:14px;font-weight:700;color:#fff;">${challenger.name}</div>
+                        <div style="font-size:13px;font-weight:700;color:#fff;width:100%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${challenger.name}</div>
                         ${formatHand(data.challengerHand)}
-                        <div style="font-size:12px;color:rgba(255,255,255,0.6);">${data.challengerHandType || ''}</div>
+                        <div style="font-size:11px;color:rgba(255,255,255,0.6);">${data.challengerHandType || ''}</div>
                         <span class="compare-badge" style="background:${data.winnerId === data.challengerId ? winColor : loseColor}; color:#fff;">
                             ${data.winnerId === data.challengerId ? '👑 胜' : '💀 败'}
                         </span>
                     </div>
-                    <div style="display:flex;align-items:center;font-size:24px;color:rgba(255,255,255,0.3);font-weight:900;">VS</div>
+                    <div class="vs-text">VS</div>
                     <div class="compare-card" style="background:${data.winnerId === data.targetId ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'}; border:2px solid ${data.winnerId === data.targetId ? winColor : loseColor}40;">
-                        <div style="font-size:14px;font-weight:700;color:#fff;">${target.name}</div>
+                        <div style="font-size:13px;font-weight:700;color:#fff;width:100%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${target.name}</div>
                         ${formatHand(data.targetHand)}
-                        <div style="font-size:12px;color:rgba(255,255,255,0.6);">${data.targetHandType || ''}</div>
+                        <div style="font-size:11px;color:rgba(255,255,255,0.6);">${data.targetHandType || ''}</div>
                         <span class="compare-badge" style="background:${data.winnerId === data.targetId ? winColor : loseColor}; color:#fff;">
                             ${data.winnerId === data.targetId ? '👑 胜' : '💀 败'}
                         </span>
