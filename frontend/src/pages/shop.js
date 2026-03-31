@@ -19,8 +19,8 @@ const SHOP_ITEMS = {
     { id: 'd2c_200k', name: '钻石兑金币', desc: '150钻石→200,000金币', price: '150💎', emoji: '🔄', tag: '划算', priceType: 'diamonds' },
   ],
   props: [
-    { id: null, name: '换牌卡', desc: '即将推出', price: '敬请期待', emoji: '🃏', isDashed: true },
-    { id: null, name: '透视卡', desc: '即将推出', price: '敬请期待', emoji: '👁️', isDashed: true },
+    { id: 'xray_card_3', name: '透视卡×3', desc: '随机窥探对手一张牌', price: '30💎', emoji: '🔍', priceType: 'diamonds' },
+    { id: 'swap_card_3', name: '换牌卡×3', desc: '盲换手中一张牌', price: '50💎', emoji: '🔄', priceType: 'diamonds' },
   ]
 };
 
@@ -185,7 +185,8 @@ async function _handlePurchase(itemId, page) {
       if (chipsEl) chipsEl.textContent = data.totalChips.toLocaleString();
       if (diamondsEl) diamondsEl.textContent = data.totalDiamonds;
 
-      _showShopToast(page, `购买成功！获得 ${data.rewardAmount.toLocaleString()} ${data.rewardType === 'chips' ? '金币' : '钻石'} 🎉`);
+      const rewardLabel = data.rewardType === 'chips' ? '金币' : data.rewardType === 'diamonds' ? '钻石' : '道具';
+      _showShopToast(page, `购买成功！获得 ${data.rewardAmount.toLocaleString()} ${rewardLabel} 🎉`);
     } else {
       _showShopToast(page, json.message || '购买失败');
     }
