@@ -159,10 +159,39 @@ class WebSocketClient {
             case 'player_ready':
             case 'game_started':
             case 'next_turn':
+                if (data.state) {
+                    this._syncGameState(data.state);
+                }
+                break;
+
             case 'player_called':
             case 'player_raised':
             case 'player_all_in':
+                // 记录下注动作元数据，供 table.js 播放筹码飞行动画
+                store.set('game.lastAction', {
+                    type: type,
+                    playerId: data.playerId || data.state?.currentPlayer,
+                    amount: data.amount || 0,
+                    timestamp: Date.now()
+                });
+                if (data.state) {
+                    this._syncGameState(data.state);
+                }
+                break;
+
             case 'player_folded':
+                // 记录弃牌动作（用于浮动提示）
+                store.set('game.lastAction', {
+                    type: 'player_folded',
+                    playerId: data.playerId || data.state?.currentPlayer,
+                    amount: 0,
+                    timestamp: Date.now()
+                });
+                if (data.state) {
+                    this._syncGameState(data.state);
+                }
+                break;
+
             case 'player_looked':
                 if (data.state) {
                     this._syncGameState(data.state);

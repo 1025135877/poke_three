@@ -61,10 +61,12 @@ export function renderPlayerSeat(player, isCurrentTurn = false, isSelf = false) 
       ` : ''}
     </div>
     <span class="text-xs font-bold text-on-surface truncate max-w-[70px] text-center">${player.name}${isSelf ? '(我)' : ''}</span>
-    <div class="bg-on-surface/80 text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
+    <div class="flex items-center gap-1 bg-on-surface/80 text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
+      <span class="inline-block w-3 h-3 rounded-full" style="background:conic-gradient(#fbbf24 0deg,#059669 15deg,#059669 30deg,#fbbf24 30deg,#fbbf24 45deg,#059669 45deg,#059669 75deg,#fbbf24 75deg,#fbbf24 90deg,#059669 90deg,#059669 120deg,#fbbf24 120deg,#fbbf24 135deg,#059669 135deg,#059669 165deg,#fbbf24 165deg,#fbbf24 180deg,#059669 180deg,#059669 360deg);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.3);flex-shrink:0;"></span>
       $ ${(player.chips || 0).toLocaleString()}
     </div>
   `;
 
   return el;
 }
+

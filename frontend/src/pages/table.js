@@ -1,13 +1,17 @@
 /**
  * 牌桌页面 — 基于 ui/optimized_pot_layout_table 设计
- * 包含绿色牌桌、玩家座位、手牌、操作按钮
+ * 包含绿色牌桌、玩家座位、手牌、操作按钮、筹码特效
  */
 import { store } from '../store.js';
 import { wsClient } from '../ws.js';
 import { router } from '../router.js';
 import { renderHandCards } from '../components/card.js';
 import { renderPlayerSeat, SEAT_POSITIONS } from '../components/playerSeat.js';
+import { renderChipStack, createFlyingChip } from '../components/chipStack.js';
 import { getAvatarUrl } from '../utils/avatarUtil.js';
+
+// 记录上次处理的 action 时间戳，避免重复播放动画
+let _lastActionTimestamp = 0;
 
 export function renderTable() {
   const game = store.state.game;
@@ -51,19 +55,15 @@ export function renderTable() {
       <div class="relative w-full max-w-[380px] aspect-[4/5] bg-table-felt rounded-[140px] shadow-[inset_0_0_80px_rgba(0,0,0,0.3),0_16px_48px_rgba(0,0,0,0.2)] flex items-center justify-center border-[12px] border-tertiary-dim overflow-visible" id="poker-table">
 
         <!-- 奖池 -->
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-10">
-          <div class="bg-on-surface/70 text-white px-6 py-2 rounded-full text-base font-headline font-extrabold backdrop-blur-sm border border-white/10">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-10" id="pot-area">
+          <div class="bg-on-surface/70 text-white px-6 py-2 rounded-full text-base font-headline font-extrabold backdrop-blur-sm border border-white/10" id="pot-label">
             奖池：<span id="pot-amount">${(game.pot || 0).toLocaleString()}</span>
           </div>
           <div class="text-xs text-white/70 font-bold mt-1" id="bet-info">
             底注 ${(game.ante || 0).toLocaleString()} · 跟注 ${((game.currentBet || 0)).toLocaleString()}
           </div>
-          <!-- 筹码装饰 -->
-          <div class="flex gap-1">
-            <div class="w-8 h-8 rounded-full bg-primary-container border-3 border-primary-dim shadow-lg rotate-12 -translate-x-1"></div>
-            <div class="w-8 h-8 rounded-full bg-secondary border-3 border-secondary/80 shadow-lg"></div>
-            <div class="w-8 h-8 rounded-full bg-tertiary-fixed border-3 border-tertiary-dim shadow-lg -translate-y-1"></div>
-          </div>
+          <!-- 筹码堆 -->
+          <div id="pot-chips"></div>
         </div>
 
         <!-- 玩家座位容器 -->
@@ -90,6 +90,7 @@ function _initTable(page) {
   _renderSeats(page);
   _renderHandCards(page);
   _updateStatus(page);
+  _renderPotChips(page);
   _renderActionBar(page);
   _bindActions(page);
 
@@ -100,6 +101,8 @@ function _initTable(page) {
     _updateStatus(page);
     _updatePot(page);
     _renderActionBar(page);
+    // 检测最新动作并播放动画
+    _handleLastAction(page);
   });
 
   // 页面销毁时清理
@@ -178,11 +181,41 @@ function _updateStatus(page) {
   }
 }
 
+/** 渲染奖池中心的筹码堆 */
+function _renderPotChips(page) {
+  const potChipsEl = page.querySelector('#pot-chips');
+  if (!potChipsEl) return;
+  potChipsEl.innerHTML = '';
+
+  const pot = store.state.game.pot || 0;
+  if (pot > 0) {
+    const chipStackEl = renderChipStack(pot);
+    chipStackEl.classList.add('chip-land');
+    potChipsEl.appendChild(chipStackEl);
+  }
+}
+
 function _updatePot(page) {
   const potEl = page.querySelector('#pot-amount');
+  const oldPot = potEl ? parseInt(potEl.textContent.replace(/,/g, '')) || 0 : 0;
+  const newPot = store.state.game.pot || 0;
+
   if (potEl) {
-    potEl.textContent = (store.state.game.pot || 0).toLocaleString();
+    potEl.textContent = newPot.toLocaleString();
+
+    // 金额变化时，触发脉冲动画
+    if (newPot !== oldPot && newPot > 0) {
+      const potLabel = page.querySelector('#pot-label');
+      if (potLabel) {
+        potLabel.classList.remove('pot-pulse');
+        // 使用 requestAnimationFrame 强制重排以重新触发动画
+        requestAnimationFrame(() => {
+          potLabel.classList.add('pot-pulse');
+        });
+      }
+    }
   }
+
   const betInfo = page.querySelector('#bet-info');
   if (betInfo) {
     const game = store.state.game;
@@ -190,6 +223,69 @@ function _updatePot(page) {
     const bet = (game.currentBet || 0).toLocaleString();
     betInfo.textContent = `底注 ${ante} · 跟注 ${bet}`;
   }
+
+  // 更新奖池筹码堆
+  _renderPotChips(page);
+}
+
+/** 处理最新动作，播放筹码飞行动画和浮动提示 */
+function _handleLastAction(page) {
+  const action = store.state.game.lastAction;
+  if (!action || action.timestamp <= _lastActionTimestamp) return;
+  _lastActionTimestamp = action.timestamp;
+
+  const playerId = action.playerId;
+  if (!playerId) return;
+
+  // 查找玩家座位 DOM 元素
+  const seatEl = page.querySelector(`[data-player-id="${playerId}"]`);
+  const potArea = page.querySelector('#pot-area');
+
+  // 根据动作类型选择不同效果
+  switch (action.type) {
+    case 'player_called':
+    case 'player_raised':
+    case 'player_all_in': {
+      // 筹码飞行动画：从玩家座位飞向奖池中心
+      if (seatEl && potArea) {
+        createFlyingChip(seatEl, potArea, action.amount || store.state.game.currentBet || 100);
+      }
+      // 浮动文字提示
+      const actionTexts = {
+        'player_called': { text: '跟注', bg: '#059669', color: '#ffffff' },
+        'player_raised': { text: '加注!', bg: '#dc2626', color: '#ffffff' },
+        'player_all_in': { text: '全押!!', bg: '#7c3aed', color: '#fbbf24' }
+      };
+      const info = actionTexts[action.type];
+      if (info && seatEl) {
+        _showActionFloat(seatEl, info.text, info.bg, info.color);
+      }
+      break;
+    }
+    case 'player_folded': {
+      if (seatEl) {
+        _showActionFloat(seatEl, '弃牌', '#6b7280', '#ffffff');
+      }
+      break;
+    }
+  }
+}
+
+/** 在座位上方显示浮动操作文字 */
+function _showActionFloat(seatEl, text, bgColor, textColor) {
+  const float = document.createElement('div');
+  float.className = 'action-float';
+  float.style.background = bgColor;
+  float.style.color = textColor;
+  float.style.boxShadow = `0 2px 8px ${bgColor}80`;
+  float.textContent = text;
+
+  // 确保座位元素有 relative 定位
+  seatEl.style.position = seatEl.style.position || 'relative';
+  seatEl.appendChild(float);
+
+  // 动画结束后移除
+  float.addEventListener('animationend', () => float.remove());
 }
 
 /** 根据游戏阶段动态渲染操作栏 */
