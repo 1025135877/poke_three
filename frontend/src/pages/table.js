@@ -574,31 +574,38 @@ function _showSwapDialog(page) {
     return;
   }
 
-  const cardToStr = (c) => {
+  const getCardHtml = (c) => {
     const suit = c.symbol || { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' }[c.suit] || '?';
     const rank = c.display || String(c.value || '');
-    const color = (c.suit === 'hearts' || c.suit === 'diamonds') ? '#ef4444' : '#e2e8f0';
-    return { text: `${suit}${rank}`, color };
+    const isRed = c.suit === 'hearts' || c.suit === 'diamonds';
+    const color = isRed ? '#ef4444' : '#1e293b';
+
+    return `
+      <div class="poker-card ${isRed ? 'red' : 'black'} relative flex items-center justify-center bg-white rounded-lg shadow-sm flex-shrink-0" style="width:64px;height:90px;color:${color};border:2px solid rgba(0,0,0,0.1);">
+        <span class="absolute top-1 left-1.5 font-headline font-extrabold leading-none" style="font-size:12px;">${rank}</span>
+        <span class="text-3xl select-none" style="line-height:1;">${suit}</span>
+      </div>
+    `;
   };
 
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
 
   overlay.innerHTML = `
-    <div style="background:var(--md-sys-color-surface, #1a1a2e);border-radius:20px;padding:20px;width:85%;max-width:340px;box-shadow:0 16px 48px rgba(0,0,0,0.5);">
-      <h3 style="text-align:center;font-size:18px;font-weight:800;color:var(--md-sys-color-on-surface, #fff);margin-bottom:8px;">
-        🔄 选择要替换的牌
+    <div style="background:var(--md-sys-color-surface, #1a1a2e);border-radius:24px;padding:24px;width:85%;max-width:340px;box-shadow:0 24px 60px rgba(0,0,0,0.6);">
+      <h3 style="text-align:center;font-size:18px;font-weight:900;color:var(--md-sys-color-on-surface, #fff);margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <span style="font-size:20px;">🔄</span> 选择要替换的牌
       </h3>
-      <p style="text-align:center;font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:16px;">从牌库顶抽一张新牌替换</p>
-      <div style="display:flex;gap:12px;justify-content:center;">
+      <p style="text-align:center;font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:20px;">从牌库顶抽一张新牌替换</p>
+      <div style="display:flex;gap:12px;justify-content:center;margin-bottom:24px;">
         ${myCards.map((c, i) => {
-    const card = cardToStr(c);
-    return `<button class="swap-card" data-index="${i}" style="width:72px;height:100px;border-radius:12px;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;cursor:pointer;transition:all 0.2s;color:${card.color};" onmouseover="this.style.borderColor='rgba(16,185,129,0.7)';this.style.background='rgba(16,185,129,0.15)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.15)';this.style.background='rgba(255,255,255,0.08)'">
-            ${card.text}
+    return `<button class="swap-card group relative cursor-pointer" data-index="${i}" style="border:none;background:none;padding:0;transition:all 0.2s;" onmouseover="this.style.transform='translateY(-8px) scale(1.05)'" onmouseout="this.style.transform='none'">
+            <div style="position:absolute;inset:-4px;background:rgba(16,185,129,0.5);border-radius:12px;filter:blur(6px);opacity:0;transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0"></div>
+            <div style="position:relative;">${getCardHtml(c)}</div>
           </button>`;
   }).join('')}
       </div>
-      <button id="swap-cancel" style="width:100%;margin-top:16px;padding:10px;border-radius:12px;background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.5);font-weight:600;font-size:13px;cursor:pointer;">取消</button>
+      <button id="swap-cancel" style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.8);font-weight:700;font-size:14px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">取消</button>
     </div>
   `;
 

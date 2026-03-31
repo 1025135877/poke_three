@@ -297,14 +297,26 @@ class WebSocketClient {
         const isMyFight = data.challengerId === myId || data.targetId === myId;
 
         // 构建手牌显示
-        const cardToEmoji = (card) => {
-            if (!card) return '🂠';
-            // 后端 Card 对象: { suit, value, display, symbol, suitName, id }
+        // 构建手牌显示
+        const getCardHtml = (card, size = 'sm') => {
+            if (!card) return '<div class="w-10 h-14 rounded bg-surface-container opacity-50 mx-0.5 border border-outline-variant/20"></div>';
             const suit = card.symbol || { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' }[card.suit] || '?';
-            const rank = card.display || (card.value === 14 ? 'A' : card.value === 13 ? 'K' : card.value === 12 ? 'Q' : card.value === 11 ? 'J' : String(card.value || ''));
-            return `${suit}${rank}`;
+            const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
+            const display = card.display || String(card.value || '');
+
+            const sizeClass = size === 'sm' ? 'w-10 h-14 text-[10px]' : size === 'md' ? 'w-16 h-24 text-sm' : 'w-24 h-36 text-lg';
+            const symbolSize = size === 'sm' ? 'text-xl' : size === 'md' ? 'text-3xl' : 'text-5xl';
+            const padding = size === 'sm' ? 'top-1 left-1 bottom-1 right-1' : 'top-1.5 left-1.5 bottom-1.5 right-1.5';
+            const color = isRed ? '#ef4444' : '#1e293b';
+
+            return `
+                <div class="${sizeClass} relative flex items-center justify-center bg-white rounded shadow-sm flex-shrink-0 mx-0.5" style="color: ${color}; border: 1px solid rgba(0,0,0,0.15);">
+                    <span class="absolute ${padding} font-headline font-extrabold leading-none">${display}</span>
+                    <span class="${symbolSize} select-none" style="line-height: 1;">${suit}</span>
+                </div>
+            `;
         };
-        const formatHand = (cards) => (cards || []).map(cardToEmoji).join(' ');
+        const formatHand = (cards) => `<div class="flex justify-center my-1.5">${(cards || []).map(c => getCardHtml(c, 'sm')).join('')}</div>`;
 
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);animation:fadeIn 0.3s ease;';
@@ -327,7 +339,7 @@ class WebSocketClient {
                 <div style="display:flex;gap:12px;align-items:stretch;">
                     <div class="compare-card" style="background:${data.winnerId === data.challengerId ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'}; border:2px solid ${data.winnerId === data.challengerId ? winColor : loseColor}40;">
                         <div style="font-size:14px;font-weight:700;color:#fff;">${challenger.name}</div>
-                        <div style="font-size:22px;letter-spacing:4px;color:#fff;font-weight:600;">${formatHand(data.challengerHand)}</div>
+                        ${formatHand(data.challengerHand)}
                         <div style="font-size:12px;color:rgba(255,255,255,0.6);">${data.challengerHandType || ''}</div>
                         <span class="compare-badge" style="background:${data.winnerId === data.challengerId ? winColor : loseColor}; color:#fff;">
                             ${data.winnerId === data.challengerId ? '👑 胜' : '💀 败'}
@@ -336,7 +348,7 @@ class WebSocketClient {
                     <div style="display:flex;align-items:center;font-size:24px;color:rgba(255,255,255,0.3);font-weight:900;">VS</div>
                     <div class="compare-card" style="background:${data.winnerId === data.targetId ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'}; border:2px solid ${data.winnerId === data.targetId ? winColor : loseColor}40;">
                         <div style="font-size:14px;font-weight:700;color:#fff;">${target.name}</div>
-                        <div style="font-size:22px;letter-spacing:4px;color:#fff;font-weight:600;">${formatHand(data.targetHand)}</div>
+                        ${formatHand(data.targetHand)}
                         <div style="font-size:12px;color:rgba(255,255,255,0.6);">${data.targetHandType || ''}</div>
                         <span class="compare-badge" style="background:${data.winnerId === data.targetId ? winColor : loseColor}; color:#fff;">
                             ${data.winnerId === data.targetId ? '👑 胜' : '💀 败'}
@@ -360,7 +372,8 @@ class WebSocketClient {
         const card = data.card || {};
         const suit = card.symbol || { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' }[card.suit] || '?';
         const rank = card.display || String(card.value || '');
-        const suitColor = (card.suit === 'hearts' || card.suit === 'diamonds') ? '#ef4444' : '#e2e8f0';
+        const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
+        const color = isRed ? '#ef4444' : '#1e293b';
 
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);animation:fadeIn 0.3s ease;';
@@ -368,9 +381,11 @@ class WebSocketClient {
         overlay.innerHTML = `
             <div style="background:linear-gradient(135deg, rgba(99,102,241,0.2), rgba(30,30,60,0.95));border:2px solid rgba(99,102,241,0.4);border-radius:24px;padding:28px 36px;text-align:center;box-shadow:0 16px 48px rgba(99,102,241,0.3);">
                 <div style="font-size:32px;margin-bottom:8px;">👁️</div>
-                <div style="font-size:14px;color:rgba(255,255,255,0.6);margin-bottom:4px;">透视了 <strong style="color:#a5b4fc">${data.targetName || '对手'}</strong> 的一张牌</div>
-                <div style="margin:16px 0;padding:16px 24px;background:rgba(255,255,255,0.08);border-radius:16px;border:2px solid rgba(255,255,255,0.15);">
-                    <span style="font-size:48px;font-weight:800;color:${suitColor};text-shadow:0 0 20px ${suitColor}40;">${suit}${rank}</span>
+                <div style="font-size:14px;color:rgba(255,255,255,0.6);margin-bottom:16px;">透视了 <strong style="color:#a5b4fc">${data.targetName || '对手'}</strong> 的一张牌</div>
+                <div style="margin:0 auto 16px; width:90px; height:128px; background:#fff; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; position:relative; color:${color}; border:2px solid rgba(0,0,0,0.1);">
+                    <span style="position:absolute; top:8px; left:12px; font-size:18px; font-weight:800; font-family:sans-serif;">${rank}</span>
+                    <span style="font-size:56px; line-height:1; user-select:none;">${suit}</span>
+                    <span style="position:absolute; bottom:8px; right:12px; font-size:18px; font-weight:800; font-family:sans-serif; transform:rotate(180deg);">${rank}</span>
                 </div>
                 <div style="font-size:12px;color:rgba(255,255,255,0.4);">剩余透视卡: ${data.remainingXray ?? 0}</div>
             </div>
@@ -385,7 +400,7 @@ class WebSocketClient {
     _showXrayWarning(data) {
         const warning = document.createElement('div');
         warning.style.cssText = 'position:fixed;top:100px;left:50%;transform:translateX(-50%);z-index:9999;background:linear-gradient(135deg, rgba(239,68,68,0.9), rgba(168,85,247,0.9));color:white;padding:12px 28px;border-radius:20px;font-size:14px;font-weight:700;box-shadow:0 4px 20px rgba(239,68,68,0.4);animation:xrayWarn 2.5s ease-in-out;display:flex;align-items:center;gap:8px;';
-        warning.innerHTML = `<span style="font-size:20px;animation:eyePulse 0.5s ease infinite alternate;">👁️</span><span>${data.hint || '有人在暗中观察你'}</span>`;
+        warning.innerHTML = `<span style="font-size:20px;animation:eyePulse 0.5s ease infinite alternate;">👁️</span> <span>${data.hint || '有人在暗中观察你'}</span>`;
 
         const style = document.createElement('style');
         style.textContent = '@keyframes xrayWarn{0%{opacity:0;transform:translateX(-50%) scale(0.8)}10%{opacity:1;transform:translateX(-50%) scale(1.05)}15%{transform:translateX(-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-10px)}}@keyframes eyePulse{from{transform:scale(1)}to{transform:scale(1.2)}}';
@@ -397,15 +412,17 @@ class WebSocketClient {
     _showSwapResult(data) {
         const oldCard = data.oldCard || {};
         const newCard = data.newCard || {};
-        const cardStr = (c) => {
+        const getMiniCard = (c) => {
             const suit = c.symbol || { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' }[c.suit] || '?';
             const rank = c.display || String(c.value || '');
-            return `${suit}${rank}`;
+            const isRed = c.suit === 'hearts' || c.suit === 'diamonds';
+            const color = isRed ? '#ef4444' : '#1e293b';
+            return `<span style="display:inline-flex; align-items:center; justify-content:center; background:#fff; color:${color}; padding:0px 6px; border-radius:4px; border:1px solid rgba(0,0,0,0.1); margin:0 4px; font-weight:800; box-shadow:0 2px 4px rgba(0,0,0,0.2);">${suit}${rank}</span>`;
         };
 
         const toast = document.createElement('div');
-        toast.style.cssText = 'position:fixed;top:100px;left:50%;transform:translateX(-50%);z-index:9999;background:linear-gradient(135deg, rgba(16,185,129,0.9), rgba(6,95,70,0.9));color:white;padding:12px 28px;border-radius:20px;font-size:14px;font-weight:700;box-shadow:0 4px 20px rgba(16,185,129,0.4);animation:swapNotify 2.5s ease;display:flex;align-items:center;gap:8px;';
-        toast.innerHTML = `<span style="font-size:18px;">🔄</span><span>${cardStr(oldCard)} → ${cardStr(newCard)}</span><span style="font-size:11px;opacity:0.7;margin-left:4px;">(剩余${data.remainingSwap ?? 0}张)</span>`;
+        toast.style.cssText = 'position:fixed;top:100px;left:50%;transform:translateX(-50%);z-index:9999;background:linear-gradient(135deg, rgba(16,185,129,0.9), rgba(6,95,70,0.9));color:white;padding:12px 28px;border-radius:20px;font-size:14px;font-weight:700;box-shadow:0 4px 20px rgba(16,185,129,0.4);animation:swapNotify 2.5s ease;display:flex;align-items:center;gap:4px;';
+        toast.innerHTML = `<span style="font-size:18px;margin-right:2px;">🔄</span><span>${getMiniCard(oldCard)} → ${getMiniCard(newCard)}</span><span style="font-size:11px;opacity:0.7;margin-left:4px;">(剩余${data.remainingSwap ?? 0}张)</span>`;
 
         const style = document.createElement('style');
         style.textContent = '@keyframes swapNotify{0%{opacity:0;transform:translateX(-50%) translateY(-8px)}10%{opacity:1;transform:translateX(-50%)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-8px)}}';
@@ -447,7 +464,7 @@ class WebSocketClient {
         }
         this.reconnectAttempts++;
         const delay = this.reconnectDelay * this.reconnectAttempts;
-        console.log(`将在 ${delay}ms 后尝试重连 (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+        console.log(`将在 ${delay}ms 后尝试重连(${this.reconnectAttempts} / ${this.maxReconnectAttempts})...`);
         setTimeout(() => this.connect(this.url), delay);
     }
 }
