@@ -296,6 +296,8 @@ public class GameWebSocket {
                 GameRoom room = requireRoom(playerId);
                 String targetId = (String) data.get("targetId");
                 room.useXrayCard(playerId, targetId);
+                // 持久化扣除道具
+                itemService.consumeItem(playerId, ItemService.ITEM_XRAY);
             }
 
             case "use_swap" -> {
@@ -303,6 +305,8 @@ public class GameWebSocket {
                 GameRoom room = requireRoom(playerId);
                 int cardIndex = data.get("cardIndex") instanceof Number n ? n.intValue() : -1;
                 room.useSwapCard(playerId, cardIndex);
+                // 持久化扣除道具
+                itemService.consumeItem(playerId, ItemService.ITEM_SWAP);
             }
 
             case "ping" -> sendToSession(session, "pong", Map.of("time", System.currentTimeMillis()));
