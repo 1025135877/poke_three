@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pokethree.game.*;
 import com.pokethree.service.AuthService;
 import com.pokethree.service.GameService;
+import com.pokethree.service.ItemService;
 import com.pokethree.service.TokenStore;
 import jakarta.websocket.*;
 import jakarta.websocket.server.ServerEndpoint;
@@ -35,6 +36,7 @@ public class GameWebSocket {
     private static GameService gameService;
     private static TokenStore tokenStore;
     private static AuthService authService;
+    private static ItemService itemService;
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /** sessionId -> Session */
@@ -71,6 +73,11 @@ public class GameWebSocket {
     @Autowired
     public void setAuthService(AuthService as) {
         GameWebSocket.authService = as;
+    }
+
+    @Autowired
+    public void setItemService(ItemService is) {
+        GameWebSocket.itemService = is;
     }
 
     // ===== 生命周期 =====
@@ -192,6 +199,9 @@ public class GameWebSocket {
                 GameRoom room = roomManager.quickMatch(player, roomType);
                 setupRoomCallback(room);
 
+                // 同步道具数量到 PlayerState
+                syncItemsToPlayer(player);
+
                 sendToSession(session, "room_joined", Map.of(
                         "roomId", room.getId(),
                         "roomType", room.getRoomType(),
@@ -220,6 +230,9 @@ public class GameWebSocket {
 
                 GameRoom room = roomManager.aiMatch(player, roomType);
                 setupRoomCallback(room);
+
+                // 同步道具数量到 PlayerState
+                syncItemsToPlayer(player);
 
                 sendToSession(session, "room_joined", Map.of(
                         "roomId", room.getId(),
@@ -276,6 +289,20 @@ public class GameWebSocket {
                 room.resetForNextGame();
                 // 广播房间重置，等待所有真人重新准备
                 broadcastRoomState(room, null);
+            }
+
+            case "use_xray" -> {
+                requireLogin(playerId);
+                GameRoom room = requireRoom(playerId);
+                String targetId = (String) data.get("targetId");
+                room.useXrayCard(playerId, targetId);
+            }
+
+            case "use_swap" -> {
+                requireLogin(playerId);
+                GameRoom room = requireRoom(playerId);
+                int cardIndex = data.get("cardIndex") instanceof Number n ? n.intValue() : -1;
+                room.useSwapCard(playerId, cardIndex);
             }
 
             case "ping" -> sendToSession(session, "pong", Map.of("time", System.currentTimeMillis()));
@@ -388,6 +415,19 @@ public class GameWebSocket {
         if (room == null)
             throw new IllegalStateException("你不在任何房间中");
         return room;
+    }
+
+    /** 从 DB 同步道具数量到 PlayerState */
+    private void syncItemsToPlayer(PlayerState player) {
+        if (player == null || player.isAI())
+            return;
+        try {
+            var items = itemService.getPlayerItems(player.getId());
+            player.setXrayCards(items.getOrDefault(ItemService.ITEM_XRAY, 0));
+            player.setSwapCards(items.getOrDefault(ItemService.ITEM_SWAP, 0));
+        } catch (Exception e) {
+            log.warn("同步道具失败: {}", e.getMessage());
+        }
     }
 
     private void sendToSession(Session session, String type, Object data) {

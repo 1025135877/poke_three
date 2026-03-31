@@ -243,6 +243,40 @@ class WebSocketClient {
                 store.set('result', null);
                 break;
 
+            // ===== 道具消息 =====
+            case 'xray_result':
+                this._showXrayResult(data);
+                break;
+
+            case 'xray_warning':
+                this._showXrayWarning(data);
+                break;
+
+            case 'swap_result':
+                // 更新手牌
+                if (data.hand) {
+                    store.set('game.myCards', data.hand);
+                }
+                this._showSwapResult(data);
+                break;
+
+            case 'player_swapped': {
+                // 在座位上显示换牌提示
+                const swapSeat = document.querySelector(`[data-player-id="${data.playerId}"]`);
+                if (swapSeat) {
+                    const float = document.createElement('div');
+                    float.className = 'action-float';
+                    float.style.background = '#10b981';
+                    float.style.color = '#ffffff';
+                    float.style.boxShadow = '0 2px 8px rgba(16,185,129,0.5)';
+                    float.textContent = '🔄 换牌';
+                    swapSeat.style.position = swapSeat.style.position || 'relative';
+                    swapSeat.appendChild(float);
+                    float.addEventListener('animationend', () => float.remove());
+                }
+                break;
+            }
+
             case 'error':
                 console.error('服务器错误:', data.message);
                 break;
@@ -318,6 +352,66 @@ class WebSocketClient {
         document.body.appendChild(overlay);
         overlay.addEventListener('click', () => overlay.remove());
         setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 3500);
+    }
+
+    // ===== 道具结果展示 =====
+
+    _showXrayResult(data) {
+        const card = data.card || {};
+        const suit = card.symbol || { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' }[card.suit] || '?';
+        const rank = card.display || String(card.value || '');
+        const suitColor = (card.suit === 'hearts' || card.suit === 'diamonds') ? '#ef4444' : '#e2e8f0';
+
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);animation:fadeIn 0.3s ease;';
+
+        overlay.innerHTML = `
+            <div style="background:linear-gradient(135deg, rgba(99,102,241,0.2), rgba(30,30,60,0.95));border:2px solid rgba(99,102,241,0.4);border-radius:24px;padding:28px 36px;text-align:center;box-shadow:0 16px 48px rgba(99,102,241,0.3);">
+                <div style="font-size:32px;margin-bottom:8px;">👁️</div>
+                <div style="font-size:14px;color:rgba(255,255,255,0.6);margin-bottom:4px;">透视了 <strong style="color:#a5b4fc">${data.targetName || '对手'}</strong> 的一张牌</div>
+                <div style="margin:16px 0;padding:16px 24px;background:rgba(255,255,255,0.08);border-radius:16px;border:2px solid rgba(255,255,255,0.15);">
+                    <span style="font-size:48px;font-weight:800;color:${suitColor};text-shadow:0 0 20px ${suitColor}40;">${suit}${rank}</span>
+                </div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.4);">剩余透视卡: ${data.remainingXray ?? 0}</div>
+            </div>
+            <style>@keyframes fadeIn{from{opacity:0}to{opacity:1}}</style>
+        `;
+
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', () => overlay.remove());
+        setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 3000);
+    }
+
+    _showXrayWarning(data) {
+        const warning = document.createElement('div');
+        warning.style.cssText = 'position:fixed;top:100px;left:50%;transform:translateX(-50%);z-index:9999;background:linear-gradient(135deg, rgba(239,68,68,0.9), rgba(168,85,247,0.9));color:white;padding:12px 28px;border-radius:20px;font-size:14px;font-weight:700;box-shadow:0 4px 20px rgba(239,68,68,0.4);animation:xrayWarn 2.5s ease-in-out;display:flex;align-items:center;gap:8px;';
+        warning.innerHTML = `<span style="font-size:20px;animation:eyePulse 0.5s ease infinite alternate;">👁️</span><span>${data.hint || '有人在暗中观察你'}</span>`;
+
+        const style = document.createElement('style');
+        style.textContent = '@keyframes xrayWarn{0%{opacity:0;transform:translateX(-50%) scale(0.8)}10%{opacity:1;transform:translateX(-50%) scale(1.05)}15%{transform:translateX(-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-10px)}}@keyframes eyePulse{from{transform:scale(1)}to{transform:scale(1.2)}}';
+        warning.appendChild(style);
+        document.body.appendChild(warning);
+        setTimeout(() => warning.remove(), 2500);
+    }
+
+    _showSwapResult(data) {
+        const oldCard = data.oldCard || {};
+        const newCard = data.newCard || {};
+        const cardStr = (c) => {
+            const suit = c.symbol || { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' }[c.suit] || '?';
+            const rank = c.display || String(c.value || '');
+            return `${suit}${rank}`;
+        };
+
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed;top:100px;left:50%;transform:translateX(-50%);z-index:9999;background:linear-gradient(135deg, rgba(16,185,129,0.9), rgba(6,95,70,0.9));color:white;padding:12px 28px;border-radius:20px;font-size:14px;font-weight:700;box-shadow:0 4px 20px rgba(16,185,129,0.4);animation:swapNotify 2.5s ease;display:flex;align-items:center;gap:8px;';
+        toast.innerHTML = `<span style="font-size:18px;">🔄</span><span>${cardStr(oldCard)} → ${cardStr(newCard)}</span><span style="font-size:11px;opacity:0.7;margin-left:4px;">(剩余${data.remainingSwap ?? 0}张)</span>`;
+
+        const style = document.createElement('style');
+        style.textContent = '@keyframes swapNotify{0%{opacity:0;transform:translateX(-50%) translateY(-8px)}10%{opacity:1;transform:translateX(-50%)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-8px)}}';
+        toast.appendChild(style);
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2500);
     }
 
     _syncGameState(state) {

@@ -36,6 +36,7 @@ public class AuthService {
     private final TokenStore tokenStore;
     private final DailyCheckinMapper checkinMapper;
     private final DailyTaskMapper taskMapper;
+    private final ItemService itemService;
 
     // ===== 签到奖励配置 =====
     private static final int[] CHECKIN_REWARDS = { 5000, 10000, 20000, 35000, 50000, 80000, 100000 };
@@ -54,30 +55,32 @@ public class AuthService {
                     1));
 
     // ===== 商城商品定义 =====
-    private static final Map<String, Map<String, Object>> SHOP_ITEMS = Map.of(
-            "coins_100k",
-            Map.of("name", "一袋金币", "desc", "100,000 金币", "priceType", "cash", "price", 200, "reward", 100000,
-                    "rewardType", "chips"),
-            "coins_500k",
-            Map.of("name", "一罐金币", "desc", "500,000 金币", "priceType", "cash", "price", 1000, "reward", 500000,
-                    "rewardType", "chips"),
-            "coins_1500k",
-            Map.of("name", "一箱金币", "desc", "1,500,000 金币", "priceType", "cash", "price", 2800, "reward", 1500000,
-                    "rewardType", "chips"),
-            "coins_10m",
-            Map.of("name", "超级大金库", "desc", "10,000,000 金币", "priceType", "cash", "price", 16800, "reward", 10000000,
-                    "rewardType", "chips"),
-            "diamonds_60",
-            Map.of("name", "碎钻包", "desc", "60 钻石", "priceType", "cash", "price", 600, "reward", 60, "rewardType",
-                    "diamonds"),
-            "starter_pack",
-            Map.of("name", "新手大礼包", "desc", "5,000,000 金币 + 限定头像框", "priceType", "cash", "price", 600, "reward",
-                    5000000, "rewardType", "chips"),
-            "d2c_50k",
-            Map.of("name", "钻石兑金币", "desc", "用50钻石兑换50,000金币", "priceType", "diamonds", "price", 50, "reward", 50000,
-                    "rewardType", "chips"),
-            "d2c_200k", Map.of("name", "钻石兑金币", "desc", "用150钻石兑换200,000金币", "priceType", "diamonds", "price", 150,
-                    "reward", 200000, "rewardType", "chips"));
+    private static final Map<String, Map<String, Object>> SHOP_ITEMS;
+    static {
+        Map<String, Map<String, Object>> items = new HashMap<>();
+        items.put("coins_100k", Map.of("name", "一袋金币", "desc", "100,000 金币", "priceType", "cash", "price", 200,
+                "reward", 100000, "rewardType", "chips"));
+        items.put("coins_500k", Map.of("name", "一罐金币", "desc", "500,000 金币", "priceType", "cash", "price", 1000,
+                "reward", 500000, "rewardType", "chips"));
+        items.put("coins_1500k", Map.of("name", "一箱金币", "desc", "1,500,000 金币", "priceType", "cash", "price", 2800,
+                "reward", 1500000, "rewardType", "chips"));
+        items.put("coins_10m", Map.of("name", "超级大金库", "desc", "10,000,000 金币", "priceType", "cash", "price", 16800,
+                "reward", 10000000, "rewardType", "chips"));
+        items.put("diamonds_60", Map.of("name", "碎钻包", "desc", "60 钻石", "priceType", "cash", "price", 600, "reward", 60,
+                "rewardType", "diamonds"));
+        items.put("starter_pack", Map.of("name", "新手大礼包", "desc", "5,000,000 金币 + 限定头像框", "priceType", "cash", "price",
+                600, "reward", 5000000, "rewardType", "chips"));
+        items.put("d2c_50k", Map.of("name", "钻石兑金币", "desc", "用50钻石兑换 50,000 金币", "priceType", "diamonds", "price", 50,
+                "reward", 50000, "rewardType", "chips"));
+        items.put("d2c_200k", Map.of("name", "钻石兑金币", "desc", "用150钻石兑换 200,000 金币", "priceType", "diamonds", "price",
+                150, "reward", 200000, "rewardType", "chips"));
+        // 道具商品
+        items.put("xray_card_3", Map.of("name", "透视卡×3", "desc", "随机窥探对手一张牌", "priceType", "diamonds", "price", 30,
+                "reward", 3, "rewardType", "item", "itemType", "xray_card"));
+        items.put("swap_card_3", Map.of("name", "换牌卡×3", "desc", "盲换手中一张牌", "priceType", "diamonds", "price", 50,
+                "reward", 3, "rewardType", "item", "itemType", "swap_card"));
+        SHOP_ITEMS = Collections.unmodifiableMap(items);
+    }
 
     // ===================================================================
     // 注册 / 登录 / Token
@@ -551,6 +554,10 @@ public class AuthService {
                     .eq(Player::getId, playerId)
                     .set(Player::getDiamonds, newDiamonds)
                     .set(Player::getUpdatedAt, LocalDateTime.now()));
+        } else if ("item".equals(rewardType)) {
+            // 道具奖励：写入道具表
+            String itemType = (String) item.get("itemType");
+            itemService.addItem(playerId, itemType, reward);
         }
 
         log.info("购买成功: 玩家={} 商品={} 发放 {} {}", playerId, item.get("name"), reward, rewardType);

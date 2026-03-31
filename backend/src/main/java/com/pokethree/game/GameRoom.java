@@ -243,6 +243,103 @@ public class GameRoom {
         nextTurn();
     }
 
+    // ===== 道具操作 =====
+
+    /**
+     * 使用透视卡 — 随机窥探目标一张牌
+     * 不消耗回合，每局限用一次
+     */
+    public synchronized void useXrayCard(String playerId, String targetId) {
+        if (phase != Phase.BETTING)
+            throw new IllegalStateException("当前不在下注阶段");
+
+        PlayerState me = players.get(playerId);
+        PlayerState target = players.get(targetId);
+
+        if (me == null || me.isHasFolded())
+            throw new IllegalStateException("无效的玩家");
+        if (target == null || target.isHasFolded())
+            throw new IllegalStateException("对方已弃牌");
+        if (playerId.equals(targetId))
+            throw new IllegalStateException("不能对自己使用透视卡");
+        if (me.isUsedXrayThisRound())
+            throw new IllegalStateException("本局已使用过透视卡");
+        if (me.getXrayCards() <= 0)
+            throw new IllegalStateException("透视卡不足");
+
+        // 扣减配额并标记
+        me.setXrayCards(me.getXrayCards() - 1);
+        me.setUsedXrayThisRound(true);
+
+        // 随机选目标一张牌
+        List<Card> targetHand = target.getHand();
+        Card revealedCard = targetHand.get(new Random().nextInt(targetHand.size()));
+
+        // 仅推送给使用者
+        notifyPlayer(playerId, "xray_result", Map.of(
+                "targetId", targetId,
+                "targetName", target.getName(),
+                "card", revealedCard,
+                "remainingXray", me.getXrayCards()));
+
+        // 给被透视者发送警告
+        notifyPlayer(targetId, "xray_warning", Map.of(
+                "hint", "有人在暗中观察你"));
+
+        log.info("透视卡: {} 透视 {} 的一张牌 {}{}", playerId, targetId, revealedCard.getSymbol(), revealedCard.getDisplay());
+    }
+
+    /**
+     * 使用换牌卡 — 盲换手牌中的一张
+     * 必须已看牌，不消耗回合，每局限用一次
+     */
+    public synchronized void useSwapCard(String playerId, int cardIndex) {
+        if (phase != Phase.BETTING)
+            throw new IllegalStateException("当前不在下注阶段");
+
+        PlayerState me = players.get(playerId);
+        if (me == null || me.isHasFolded())
+            throw new IllegalStateException("无效的玩家");
+        if (!me.isHasLooked())
+            throw new IllegalStateException("必须先看牌才能使用换牌卡");
+        if (me.isUsedSwapThisRound())
+            throw new IllegalStateException("本局已使用过换牌卡");
+        if (me.getSwapCards() <= 0)
+            throw new IllegalStateException("换牌卡不足");
+        if (cardIndex < 0 || cardIndex >= me.getHand().size())
+            throw new IllegalStateException("无效的手牌位置");
+        if (deck.remaining() < 1)
+            throw new IllegalStateException("牌库已空，无法换牌");
+
+        // 扣减配额并标记
+        me.setSwapCards(me.getSwapCards() - 1);
+        me.setUsedSwapThisRound(true);
+
+        // 原子操作：移除旧牌，抽取新牌
+        List<Card> hand = new ArrayList<>(me.getHand());
+        Card oldCard = hand.remove(cardIndex);
+        Card newCard = deck.deal(1).get(0);
+        hand.add(cardIndex, newCard);
+        me.setHand(hand);
+
+        // 仅推送给使用者（含完整新手牌）
+        notifyPlayer(playerId, "swap_result", Map.of(
+                "cardIndex", cardIndex,
+                "oldCard", oldCard,
+                "newCard", newCard,
+                "hand", hand,
+                "remainingSwap", me.getSwapCards()));
+
+        // 广播给所有人（不包含具体牌面）
+        broadcast("player_swapped", Map.of(
+                "playerId", playerId,
+                "playerName", me.getName()));
+
+        log.info("换牌卡: {} 换掉 {}{} 得到 {}{}", playerId,
+                oldCard.getSymbol(), oldCard.getDisplay(),
+                newCard.getSymbol(), newCard.getDisplay());
+    }
+
     // ===== 状态查询 =====
 
     /**
@@ -318,9 +415,14 @@ public class GameRoom {
             pm.put("isReady", p.isReady());
             pm.put("disconnected", p.isDisconnected());
             pm.put("currentRoundBet", p.getCurrentRoundBet());
-            // 只向本人显示手牌
-            if (p.getId().equals(viewerId))
+            // 只向本人显示手牌和道具信息
+            if (p.getId().equals(viewerId)) {
                 pm.put("hand", p.getHand());
+                pm.put("xrayCards", p.getXrayCards());
+                pm.put("swapCards", p.getSwapCards());
+                pm.put("usedXrayThisRound", p.isUsedXrayThisRound());
+                pm.put("usedSwapThisRound", p.isUsedSwapThisRound());
+            }
             playerList.add(pm);
         }
         Map<String, Object> state = new HashMap<>();
@@ -361,6 +463,8 @@ public class GameRoom {
             p.setAllIn(false);
             p.setReady(false);
             p.setCurrentRoundBet(0);
+            p.setUsedXrayThisRound(false);
+            p.setUsedSwapThisRound(false);
         });
         broadcast("room_reset", Map.of());
     }

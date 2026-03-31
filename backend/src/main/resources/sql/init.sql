@@ -72,6 +72,17 @@ CREATE TABLE IF NOT EXISTS t_daily_task (
 );
 CREATE INDEX IF NOT EXISTS idx_task_player ON t_daily_task(player_id);
 
+-- 玩家道具持有表
+CREATE TABLE IF NOT EXISTS t_player_item (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id  TEXT    NOT NULL,
+    item_type  TEXT    NOT NULL,
+    quantity   INTEGER DEFAULT 0,
+    updated_at TEXT    DEFAULT (datetime('now','localtime')),
+    UNIQUE(player_id, item_type)
+);
+CREATE INDEX IF NOT EXISTS idx_item_player ON t_player_item(player_id);
+
 -- 迁移：为已有 t_daily_task 表添加 progress 列（忽略已存在的情况）
 -- SQLite ALTER TABLE ADD COLUMN 如果列已存在会报错，但 Spring init-mode: always 会忽略
 ALTER TABLE t_daily_task ADD COLUMN progress INTEGER DEFAULT 0;

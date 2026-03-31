@@ -329,7 +329,27 @@ function _renderActionBar(page) {
     const callCost = hasLooked ? currentBet * 2 : currentBet;
     const compareCost = currentBet * 2;
 
+    // 道具区：不受轮次限制，只要在对局中未弃牌就可用
+    const xrayCount = myState?.xrayCards || 0;
+    const swapCount = myState?.swapCards || 0;
+    const usedXray = myState?.usedXrayThisRound;
+    const usedSwap = myState?.usedSwapThisRound;
+    const itemsActive = game.phase === 'betting' && !hasFolded;
+
     bar.innerHTML = `
+      ${(xrayCount > 0 || swapCount > 0) ? `
+      <div class="flex items-center justify-center gap-2 max-w-[430px] mx-auto mb-2">
+        <button class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 duration-200 ${itemsActive && xrayCount > 0 && !usedXray ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-400/40 hover:bg-indigo-500/30' : 'bg-surface-container text-on-surface-variant/40 cursor-not-allowed'}" id="btn-xray" ${!itemsActive || xrayCount <= 0 || usedXray ? 'disabled' : ''}>
+          <span style="font-size:16px">🔍</span>
+          <span>透视卡</span>
+          <span class="ml-0.5 px-1.5 py-0.5 rounded-full bg-white/10 text-[10px]">${xrayCount}</span>
+        </button>
+        <button class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 duration-200 ${itemsActive && swapCount > 0 && !usedSwap && hasLooked ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 hover:bg-emerald-500/30' : 'bg-surface-container text-on-surface-variant/40 cursor-not-allowed'}" id="btn-swap" ${!itemsActive || swapCount <= 0 || usedSwap || !hasLooked ? 'disabled' : ''}>
+          <span style="font-size:16px">🔄</span>
+          <span>换牌卡</span>
+          <span class="ml-0.5 px-1.5 py-0.5 rounded-full bg-white/10 text-[10px]">${swapCount}</span>
+        </button>
+      </div>` : ''}
       <div class="flex items-center justify-center gap-2 max-w-[430px] mx-auto" style="opacity:${opacity};pointer-events:${pointer}">
         <button class="flex-1 flex flex-col items-center gap-1 py-3 rounded-2xl bg-surface-container hover:bg-surface-container-high transition-all active:scale-95 duration-200" id="btn-fold">
           <span class="material-symbols-outlined text-on-surface-variant">close</span>
@@ -383,6 +403,14 @@ function _bindActions(page) {
   page.querySelector('#btn-settings')?.addEventListener('click', () => {
     wsClient.send('leave_room');
     router.navigate('/');
+  });
+
+  // 道具按钮
+  page.querySelector('#btn-xray')?.addEventListener('click', () => {
+    _showXrayDialog(page);
+  });
+  page.querySelector('#btn-swap')?.addEventListener('click', () => {
+    _showSwapDialog(page);
   });
 }
 
@@ -447,4 +475,106 @@ function _showTableToast(message) {
   toast.appendChild(style);
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 2500);
+}
+
+/** 透视卡目标选择弹窗 */
+function _showXrayDialog(page) {
+  const game = store.state.game;
+  const myId = store.state.player.id;
+  const targets = (game.players || []).filter(p =>
+    p.id !== myId && !p.hasFolded
+  );
+
+  if (targets.length === 0) {
+    _showTableToast('没有可透视的对手');
+    return;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+
+  overlay.innerHTML = `
+    <div style="background:var(--md-sys-color-surface, #1a1a2e);border-radius:20px;padding:20px;width:85%;max-width:340px;box-shadow:0 16px 48px rgba(0,0,0,0.5);">
+      <h3 style="text-align:center;font-size:18px;font-weight:800;color:var(--md-sys-color-on-surface, #fff);margin-bottom:16px;">
+        🔍 选择透视目标
+      </h3>
+      <p style="text-align:center;font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:12px;">随机窥探对手一张牌</p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${targets.map(t => `
+          <button class="xray-target" data-id="${t.id}" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;background:rgba(99,102,241,0.1);border:2px solid rgba(99,102,241,0.3);cursor:pointer;transition:all 0.2s;color:var(--md-sys-color-on-surface, #fff);">
+            <img src="${getAvatarUrl(t.avatar || t.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" />
+            <div style="flex:1;text-align:left;">
+              <div style="font-weight:700;font-size:14px;">${t.name}</div>
+              <div style="font-size:11px;opacity:0.6;">筹码 ${(t.chips || 0).toLocaleString()}</div>
+            </div>
+            <span style="font-size:18px;">👁️</span>
+          </button>
+        `).join('')}
+      </div>
+      <button id="xray-cancel" style="width:100%;margin-top:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.5);font-weight:600;font-size:13px;cursor:pointer;">取消</button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  overlay.querySelector('#xray-cancel')?.addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+  overlay.querySelectorAll('.xray-target').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.id;
+      wsClient.send('use_xray', { targetId });
+      overlay.remove();
+    });
+  });
+}
+
+/** 换牌卡手牌选择弹窗 */
+function _showSwapDialog(page) {
+  const game = store.state.game;
+  const myCards = game.myCards || [];
+
+  if (myCards.length === 0) {
+    _showTableToast('没有可替换的手牌');
+    return;
+  }
+
+  const cardToStr = (c) => {
+    const suit = c.symbol || { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' }[c.suit] || '?';
+    const rank = c.display || String(c.value || '');
+    const color = (c.suit === 'hearts' || c.suit === 'diamonds') ? '#ef4444' : '#e2e8f0';
+    return { text: `${suit}${rank}`, color };
+  };
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+
+  overlay.innerHTML = `
+    <div style="background:var(--md-sys-color-surface, #1a1a2e);border-radius:20px;padding:20px;width:85%;max-width:340px;box-shadow:0 16px 48px rgba(0,0,0,0.5);">
+      <h3 style="text-align:center;font-size:18px;font-weight:800;color:var(--md-sys-color-on-surface, #fff);margin-bottom:8px;">
+        🔄 选择要替换的牌
+      </h3>
+      <p style="text-align:center;font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:16px;">从牌库顶抽一张新牌替换</p>
+      <div style="display:flex;gap:12px;justify-content:center;">
+        ${myCards.map((c, i) => {
+    const card = cardToStr(c);
+    return `<button class="swap-card" data-index="${i}" style="width:72px;height:100px;border-radius:12px;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;cursor:pointer;transition:all 0.2s;color:${card.color};" onmouseover="this.style.borderColor='rgba(16,185,129,0.7)';this.style.background='rgba(16,185,129,0.15)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.15)';this.style.background='rgba(255,255,255,0.08)'">
+            ${card.text}
+          </button>`;
+  }).join('')}
+      </div>
+      <button id="swap-cancel" style="width:100%;margin-top:16px;padding:10px;border-radius:12px;background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.5);font-weight:600;font-size:13px;cursor:pointer;">取消</button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  overlay.querySelector('#swap-cancel')?.addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+  overlay.querySelectorAll('.swap-card').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cardIndex = parseInt(btn.dataset.index);
+      wsClient.send('use_swap', { cardIndex });
+      overlay.remove();
+    });
+  });
 }

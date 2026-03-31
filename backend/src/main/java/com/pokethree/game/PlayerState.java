@@ -27,6 +27,13 @@ public class PlayerState {
     private boolean disconnected = false;
     private long currentRoundBet = 0;
 
+    // 本局道具配额（开局时从DB同步）
+    private int xrayCards = 0;
+    private int swapCards = 0;
+    // 单局限用标记
+    private boolean usedXrayThisRound = false;
+    private boolean usedSwapThisRound = false;
+
     public static PlayerState of(String id, String name, String avatar, long chips, boolean isAI) {
         PlayerState ps = new PlayerState();
         ps.id = id;
