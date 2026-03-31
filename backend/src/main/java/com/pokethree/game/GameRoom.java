@@ -487,7 +487,8 @@ public class GameRoom {
         do {
             currentPlayerIndex = (currentPlayerIndex + 1) % turnOrder.size();
             attempts++;
-            if (attempts > turnOrder.size()) {
+            if (attempts >= turnOrder.size()) {
+                // 所有人轮了一遍都没找到可操作的玩家 → showdown
                 showdown();
                 return;
             }
@@ -524,9 +525,11 @@ public class GameRoom {
                 declareWinner(active.get(0), null);
             return true;
         }
+        // 只有当所有存活玩家都全押时才直接进入 showdown
+        // 如果还有人能操作，让他们有机会响应（跟注/弃牌/也全押）
         List<String> canAct = active.stream()
                 .filter(id -> !players.get(id).isAllIn()).toList();
-        if (canAct.size() <= 1) {
+        if (canAct.isEmpty()) {
             showdown();
             return true;
         }
@@ -658,7 +661,7 @@ public class GameRoom {
             r.put("chips", p.getChips());
             r.put("betAmount", p.getCurrentRoundBet());
             r.put("profit", profit);
-            r.put("isWinner", won > 0);
+            r.put("isWinner", profit > 0);
             r.put("hasFolded", p.isHasFolded());
             results.add(r);
         }
