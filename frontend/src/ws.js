@@ -264,10 +264,10 @@ class WebSocketClient {
 
         // 构建手牌显示
         const cardToEmoji = (card) => {
-            const suits = { 'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣' };
             if (!card) return '🂠';
-            const suit = suits[card.suit] || card.suit || '';
-            const rank = card.rank || card.value || '';
+            // 后端 Card 对象: { suit, value, display, symbol, suitName, id }
+            const suit = card.symbol || { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' }[card.suit] || '?';
+            const rank = card.display || (card.value === 14 ? 'A' : card.value === 13 ? 'K' : card.value === 12 ? 'Q' : card.value === 11 ? 'J' : String(card.value || ''));
             return `${suit}${rank}`;
         };
         const formatHand = (cards) => (cards || []).map(cardToEmoji).join(' ');
