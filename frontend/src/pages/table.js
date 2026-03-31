@@ -18,7 +18,7 @@ export function renderTable() {
   const player = store.state.player;
 
   const page = document.createElement('div');
-  page.className = 'fixed inset-0 bg-surface flex flex-col max-w-[430px] mx-auto';
+  page.className = 'fixed inset-0 bg-surface flex flex-col max-w-[430px] mx-auto overflow-hidden';
   page.id = 'table-page';
 
   page.innerHTML = `
@@ -50,7 +50,7 @@ export function renderTable() {
     </div>
 
     <!-- 游戏桌面 -->
-    <main class="flex-1 relative flex items-center justify-center px-6 overflow-visible">
+    <main class="flex-1 relative flex items-center justify-center px-6 overflow-visible" style="min-height:0">
       <!-- 牌桌 -->
       <div class="relative w-full max-w-[380px] aspect-[4/5] bg-table-felt rounded-[140px] shadow-[inset_0_0_80px_rgba(0,0,0,0.3),0_16px_48px_rgba(0,0,0,0.2)] flex items-center justify-center border-[12px] border-tertiary-dim overflow-visible" id="poker-table">
 
@@ -72,11 +72,11 @@ export function renderTable() {
     </main>
 
     <!-- 手牌区域 -->
-    <div class="relative z-30 flex justify-center py-4 -mt-8" id="hand-cards-area">
+    <div class="relative z-30 flex justify-center py-2" id="hand-cards-area" style="flex-shrink:0">
     </div>
 
     <!-- 底部操作区 -->
-    <div class="bg-surface/95 backdrop-blur-md px-4 py-4 z-40 border-t border-surface-container" id="action-bar">
+    <div class="bg-surface/95 backdrop-blur-md px-4 py-3 z-40 border-t border-surface-container" id="action-bar" style="flex-shrink:0;padding-bottom:max(12px,env(safe-area-inset-bottom))">
     </div>
   `;
 
@@ -94,6 +94,12 @@ function _initTable(page) {
   _renderActionBar(page);
   _bindActions(page);
 
+  // 等比缩放牌桌以适应屏幕
+  _adjustTableScale(page);
+  const ro = new ResizeObserver(() => _adjustTableScale(page));
+  const mainEl = page.querySelector('main');
+  if (mainEl) ro.observe(mainEl);
+
   // 监听游戏状态变化
   const unsubscribe = store.on('game', () => {
     _renderSeats(page);
@@ -106,7 +112,37 @@ function _initTable(page) {
   });
 
   // 页面销毁时清理
-  page._cleanup = unsubscribe;
+  page._cleanup = () => {
+    unsubscribe();
+    ro.disconnect();
+  };
+}
+
+/** 根据可用空间等比缩放牌桌，确保操作按钮在小屏手机上可见 */
+function _adjustTableScale(page) {
+  const main = page.querySelector('main');
+  const table = page.querySelector('#poker-table');
+  if (!main || !table) return;
+
+  // 先重置缩放，获取牌桌自然尺寸
+  table.style.transform = '';
+  table.style.marginTop = '';
+  table.style.marginBottom = '';
+
+  const availableH = main.clientHeight;
+  const tableH = table.offsetHeight;
+
+  if (tableH > 0 && tableH > availableH * 0.95) {
+    // 牌桌超出可用空间，需要缩放
+    const scale = (availableH * 0.92) / tableH;
+    const clampedScale = Math.max(scale, 0.45);
+    table.style.transform = `scale(${clampedScale})`;
+    table.style.transformOrigin = 'center center';
+    // 用负外边距补偿 scale 缩小后的空白
+    const reducedH = tableH * (1 - clampedScale) / 2;
+    table.style.marginTop = `-${reducedH}px`;
+    table.style.marginBottom = `-${reducedH}px`;
+  }
 }
 
 function _renderSeats(page) {
