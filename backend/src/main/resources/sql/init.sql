@@ -86,3 +86,19 @@ CREATE INDEX IF NOT EXISTS idx_item_player ON t_player_item(player_id);
 -- 迁移：为已有 t_daily_task 表添加 progress 列（忽略已存在的情况）
 -- SQLite ALTER TABLE ADD COLUMN 如果列已存在会报错，但 Spring init-mode: always 会忽略
 ALTER TABLE t_daily_task ADD COLUMN progress INTEGER DEFAULT 0;
+
+-- 玩家状态字段: 0=待审核 1=正常 2=封禁
+ALTER TABLE t_player ADD COLUMN status INTEGER DEFAULT 1;
+
+-- 系统配置表
+CREATE TABLE IF NOT EXISTS t_system_config (
+    config_key   TEXT NOT NULL PRIMARY KEY,
+    config_value TEXT NOT NULL,
+    updated_at   TEXT DEFAULT (datetime('now','localtime'))
+);
+
+-- 默认配置
+INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('default_chips', '888230');
+INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('default_diamonds', '520');
+INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('checkin_rewards', '5000,10000,20000,35000,50000,80000,100000');
+INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('admin_password', 'admin123');

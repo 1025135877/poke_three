@@ -37,6 +37,7 @@ public class AuthService {
     private final DailyCheckinMapper checkinMapper;
     private final DailyTaskMapper taskMapper;
     private final ItemService itemService;
+    private final AdminService adminService;
 
     // ===== 签到奖励配置 =====
     private static final int[] CHECKIN_REWARDS = { 5000, 10000, 20000, 35000, 50000, 80000, 100000 };
@@ -114,11 +115,12 @@ public class AuthService {
                 .setPassword(hashedPassword)
                 .setSalt(salt)
                 .setAvatar(avatar != null ? avatar : "")
-                .setChips(888230L)
-                .setDiamonds(520)
+                .setChips(adminService.getConfigLong("default_chips", 888230L))
+                .setDiamonds((int) adminService.getConfigLong("default_diamonds", 520))
                 .setTotalGames(0)
                 .setWinGames(0)
                 .setMaxWin(0L)
+                .setStatus(0)
                 .setCreatedAt(LocalDateTime.now())
                 .setUpdatedAt(LocalDateTime.now());
         playerMapper.insert(player);
@@ -158,6 +160,15 @@ public class AuthService {
         String hashed = hashPassword(password, player.getSalt());
         if (!hashed.equals(player.getPassword())) {
             throw new IllegalArgumentException("密码错误");
+        }
+
+        // 检查用户状态
+        int status = player.getStatus() != null ? player.getStatus() : 1;
+        if (status == 0) {
+            throw new IllegalArgumentException("账号待管理员审核，请耐心等待");
+        }
+        if (status == 2) {
+            throw new IllegalArgumentException("账号已被封禁，请联系管理员");
         }
 
         log.info("玩家登录: {} ({})", name, player.getId());
@@ -268,8 +279,9 @@ public class AuthService {
                         .eq(DailyCheckin::getCheckinDate, yesterday));
 
         int dayCount = (yesterdayCheckin != null) ? yesterdayCheckin.getDayCount() + 1 : 1;
-        int rewardIndex = Math.min(dayCount - 1, CHECKIN_REWARDS.length - 1);
-        int rewardChips = CHECKIN_REWARDS[rewardIndex];
+        int[] rewards = adminService.getCheckinRewards();
+        int rewardIndex = Math.min(dayCount - 1, rewards.length - 1);
+        int rewardChips = rewards[rewardIndex];
 
         // 保存签到记录
         DailyCheckin checkin = new DailyCheckin()
@@ -643,6 +655,13 @@ public class AuthService {
         return Base64.getEncoder().encodeToString(salt);
     }
 
+
+    /**
+     * 获取商城商品定义（供 AdminController 使用）
+     */
+    public Map<String, Map<String, Object>> getShopItems() {
+        return SHOP_ITEMS;
+    }
     private String hashPassword(String password, String salt) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");

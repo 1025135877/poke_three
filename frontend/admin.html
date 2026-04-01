@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poke Three · 管理后台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ===== 设计系统 (UI-UX-Pro-Max) ===== */
+        :root {
+            --bg-primary: #020617;
+            --bg-secondary: #0F172A;
+            --bg-card: #1E293B;
+            --bg-card-hover: #334155;
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --accent-green: #22C55E;
+            --accent-green-dim: rgba(34, 197, 94, 0.15);
+            --accent-red: #EF4444;
+            --accent-red-dim: rgba(239, 68, 68, 0.15);
+            --accent-amber: #F59E0B;
+            --accent-amber-dim: rgba(245, 158, 11, 0.15);
+            --accent-blue: #3B82F6;
+            --accent-blue-dim: rgba(59, 130, 246, 0.15);
+            --accent-purple: #8B5CF6;
+            --border: #334155;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Fira Sans', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* ===== 布局 ===== */
+        .app {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 240px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            padding: 24px 0;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 100;
+        }
+
+        .sidebar-brand {
+            padding: 0 24px 24px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+
+        .sidebar-brand h1 {
+            font-family: 'Fira Code', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-green);
+            letter-spacing: 1px;
+        }
+
+        .sidebar-brand p {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--accent-green-dim);
+            color: var(--accent-green);
+            border-left-color: var(--accent-green);
+        }
+
+        .nav-item svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn-logout {
+            width: 100%;
+            padding: 10px;
+            background: var(--accent-red-dim);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        /* 主内容区 */
+        .main {
+            margin-left: 240px;
+            flex: 1;
+            padding: 32px;
+        }
+
+        .page-header {
+            margin-bottom: 28px;
+        }
+
+        .page-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .page-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        /* 统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-family: 'Fira Code', monospace;
+            font-size: 28px;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        .stat-value.green {
+            color: var(--accent-green);
+        }
+
+        .stat-value.amber {
+            color: var(--accent-amber);
+        }
+
+        .stat-value.blue {
+            color: var(--accent-blue);
+        }
+
+        .stat-value.red {
+            color: var(--accent-red);
+        }
+
+        /* 工具栏 */
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-green);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .filter-btn {
+            padding: 10px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--accent-green);
+            color: var(--text-primary);
+        }
+
+        .filter-btn.active {
+            background: var(--accent-green-dim);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        /* 表格 */
+        .table-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 14px 16px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 14px 16px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* 状态 Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .badge-green {
+            background: var(--accent-green-dim);
+            color: var(--accent-green);
+        }
+
+        .badge-green .badge-dot {
+            background: var(--accent-green);
+        }
+
+        .badge-amber {
+            background: var(--accent-amber-dim);
+            color: var(--accent-amber);
+        }
+
+        .badge-amber .badge-dot {
+            background: var(--accent-amber);
+        }
+
+        .badge-red {
+            background: var(--accent-red-dim);
+            color: var(--accent-red);
+        }
+
+        .badge-red .badge-dot {
+            background: var(--accent-red);
+        }
+
+        /* 按钮 */
+        .btn {
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 11px;
+        }
+
+        .btn-green {
+            background: var(--accent-green-dim);
+            color: var(--accent-green);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-green:hover {
+            background: rgba(34, 197, 94, 0.25);
+        }
+
+        .btn-red {
+            background: var(--accent-red-dim);
+            color: var(--accent-red);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-red:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .btn-blue {
+            background: var(--accent-blue-dim);
+            color: var(--accent-blue);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-blue:hover {
+            background: rgba(59, 130, 246, 0.25);
+        }
+
+        .btn-amber {
+            background: var(--accent-amber-dim);
+            color: var(--accent-amber);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-amber:hover {
+            background: rgba(245, 158, 11, 0.25);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* 配置表单 */
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .config-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+        }
+
+        .config-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .config-card h3 svg {
+            width: 20px;
+            height: 20px;
+            color: var(--accent-green);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-green);
+        }
+
+        .form-hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .btn-save {
+            padding: 10px 24px;
+            background: var(--accent-green);
+            color: #000;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+
+        .btn-save:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* 道具卡片 */
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .item-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .item-card:hover {
+            border-color: var(--accent-green);
+        }
+
+        .item-card.disabled {
+            opacity: 0.5;
+        }
+
+        .item-info h4 {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .item-info p {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .item-price {
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            color: var(--accent-amber);
+            margin-top: 6px;
+        }
+
+        /* Toggle 开关 */
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .toggle input {
+            display: none;
+        }
+
+        .toggle-track {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .toggle-thumb {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .toggle input:checked+.toggle-track {
+            background: var(--accent-green-dim);
+            border-color: var(--accent-green);
+        }
+
+        .toggle input:checked~.toggle-thumb {
+            left: 23px;
+            background: var(--accent-green);
+        }
+
+        /* 登录页 */
+        .login-page {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--bg-primary);
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: var(--shadow);
+        }
+
+        .login-card h1 {
+            font-family: 'Fira Code', monospace;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--accent-green);
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .login-card .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-bottom: 32px;
+        }
+
+        .login-card .form-input {
+            margin-bottom: 16px;
+        }
+
+        .login-card .btn-save {
+            width: 100%;
+        }
+
+        .login-error {
+            color: var(--accent-red);
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            padding: 14px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            z-index: 9999;
+            animation: slideInRight 0.3s ease;
+            box-shadow: var(--shadow);
+        }
+
+        .toast.success {
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .toast.error {
+            border-left: 3px solid var(--accent-red);
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(40px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* 分页器 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .page-btn {
+            padding: 8px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .page-btn:hover {
+            border-color: var(--accent-green);
+            color: var(--text-primary);
+        }
+
+        .page-btn.active {
+            background: var(--accent-green-dim);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* 弹窗 */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .modal-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        /* 隐藏 */
+        .hidden {
+            display: none !important;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
+            }
+
+            .main {
+                margin-left: 200px;
+                padding: 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script>
+        // ===== 状态管理 =====
+        const state = {
+            token: localStorage.getItem('adminToken') || '',
+            page: 'users',
+            users: { list: [], total: 0, page: 1, status: null, keyword: '', stats: {} },
+            items: [],
+            config: {}
+        };
+
+        const API = '/api/admin';
+
+        // ===== SVG 图标 =====
+        const icons = {
+            users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+            items: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
+            config: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+            logout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>'
+        };
+
+        // ===== API 调用 =====
+        async function api(path, options = {}) {
+            const res = await fetch(API + path, {
+                ...options,
+                headers: { 'Content-Type': 'application/json', 'Admin-Token': state.token, ...(options.headers || {}) }
+            });
+            const json = await res.json();
+            if (json.code !== 0) throw new Error(json.message || '请求失败');
+            return json;
+        }
+
+        function showToast(msg, type = 'success') {
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        // ===== 渲染 =====
+        function render() {
+            const root = document.getElementById('root');
+            if (!state.token) {
+                root.innerHTML = renderLogin();
+                bindLogin();
+            } else {
+                root.innerHTML = renderApp();
+                bindNav();
+                renderPage();
+            }
+        }
+
+        function renderLogin() {
+            return `
+            <div class="login-page">
+                <div class="login-card">
+                    <h1>&gt;_ ADMIN</h1>
+                    <p class="subtitle">Poke Three 管理后台</p>
+                    <div class="login-error" id="loginError"></div>
+                    <input type="password" class="form-input" id="adminPwd" placeholder="请输入管理员密码" autofocus>
+                    <button class="btn-save" id="loginBtn">登 录</button>
+                </div>
+            </div>`;
+        }
+
+        function renderApp() {
+            return `
+            <div class="app">
+                <aside class="sidebar">
+                    <div class="sidebar-brand">
+                        <h1>&gt;_ ADMIN</h1>
+                        <p>Poke Three 管理后台</p>
+                    </div>
+                    <div class="nav-item ${state.page === 'users' ? 'active' : ''}" data-page="users">
+                        ${icons.users}<span>用户管理</span>
+                    </div>
+                    <div class="nav-item ${state.page === 'items' ? 'active' : ''}" data-page="items">
+                        ${icons.items}<span>道具管理</span>
+                    </div>
+                    <div class="nav-item ${state.page === 'config' ? 'active' : ''}" data-page="config">
+                        ${icons.config}<span>系统配置</span>
+                    </div>
+                    <div class="sidebar-footer">
+                        <button class="btn-logout" id="logoutBtn">${icons.logout} 退出登录</button>
+                    </div>
+                </aside>
+                <main class="main" id="mainContent"></main>
+            </div>`;
+        }
+
+        function bindLogin() {
+            const btn = document.getElementById('loginBtn');
+            const pwd = document.getElementById('adminPwd');
+            const err = document.getElementById('loginError');
+            async function doLogin() {
+                try {
+                    const json = await fetch(API + '/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password: pwd.value })
+                    }).then(r => r.json());
+                    if (json.code !== 0) throw new Error(json.message);
+                    state.token = json.token;
+                    localStorage.setItem('adminToken', json.token);
+                    render();
+                    loadUsers();
+                } catch (e) {
+                    err.style.display = 'block';
+                    err.textContent = e.message;
+                }
+            }
+            btn.addEventListener('click', doLogin);
+            pwd.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+        }
+
+        function bindNav() {
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    state.page = el.dataset.page;
+                    render();
+                    if (state.page === 'users') loadUsers();
+                    else if (state.page === 'items') loadItems();
+                    else if (state.page === 'config') loadConfig();
+                });
+            });
+            document.getElementById('logoutBtn')?.addEventListener('click', () => {
+                state.token = '';
+                localStorage.removeItem('adminToken');
+                render();
+            });
+            // 初始加载
+            if (state.page === 'users') loadUsers();
+            else if (state.page === 'items') loadItems();
+            else if (state.page === 'config') loadConfig();
+        }
+
+        // ===== 用户管理 =====
+        async function loadUsers() {
+            try {
+                const params = new URLSearchParams({ page: state.users.page, size: 15 });
+                if (state.users.status !== null) params.set('status', state.users.status);
+                if (state.users.keyword) params.set('keyword', state.users.keyword);
+                const json = await api('/users?' + params);
+                Object.assign(state.users, json.data);
+                state.users.list = json.data.users;
+                renderUsersPage();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        function renderPage() {
+            const el = document.getElementById('mainContent');
+            if (!el) return;
+            if (state.page === 'users') el.innerHTML = renderUsersShell();
+            else if (state.page === 'items') el.innerHTML = '<div class="page-header"><h2>道具管理</h2><p>管理商城道具的上架与下架</p></div><div class="items-grid" id="itemsGrid"></div>';
+            else if (state.page === 'config') el.innerHTML = '<div class="page-header"><h2>系统配置</h2><p>管理游戏核心参数</p></div><div class="config-grid" id="configGrid"></div>';
+        }
+
+        function renderUsersShell() {
+            return `
+            <div class="page-header"><h2>用户管理</h2><p>管理所有注册用户的状态与资产</p></div>
+            <div class="stats-grid" id="statsGrid"></div>
+            <div class="toolbar">
+                <input class="search-input" id="searchInput" placeholder="搜索用户昵称..." value="${state.users.keyword}">
+                <button class="filter-btn ${state.users.status === null ? 'active' : ''}" data-status="">全部</button>
+                <button class="filter-btn ${state.users.status === 0 ? 'active' : ''}" data-status="0">待审核</button>
+                <button class="filter-btn ${state.users.status === 1 ? 'active' : ''}" data-status="1">正常</button>
+                <button class="filter-btn ${state.users.status === 2 ? 'active' : ''}" data-status="2">已封禁</button>
+            </div>
+            <div class="table-wrap"><table id="usersTable"><thead><tr>
+                <th>昵称</th><th>金币</th><th>钻石</th><th>局数</th><th>状态</th><th>注册时间</th><th>操作</th>
+            </tr></thead><tbody id="usersBody"></tbody></table></div>
+            <div class="pagination" id="pagination"></div>`;
+        }
+
+        function renderUsersPage() {
+            const el = document.getElementById('mainContent');
+            if (!el || state.page !== 'users') return;
+
+            // 统计卡片
+            const statsEl = document.getElementById('statsGrid');
+            if (statsEl) {
+                statsEl.innerHTML = `
+                <div class="stat-card"><div class="stat-label">总用户</div><div class="stat-value blue">${state.users.totalUsers || 0}</div></div>
+                <div class="stat-card"><div class="stat-label">待审核</div><div class="stat-value amber">${state.users.pendingCount || 0}</div></div>
+                <div class="stat-card"><div class="stat-label">已封禁</div><div class="stat-value red">${state.users.bannedCount || 0}</div></div>
+                <div class="stat-card"><div class="stat-label">正常用户</div><div class="stat-value green">${(state.users.totalUsers || 0) - (state.users.pendingCount || 0) - (state.users.bannedCount || 0)}</div></div>`;
+            }
+
+            // 表格
+            const tbody = document.getElementById('usersBody');
+            if (tbody) {
+                tbody.innerHTML = state.users.list.map(u => {
+                    const statusMap = { 0: ['待审核', 'amber'], 1: ['正常', 'green'], 2: ['封禁', 'red'] };
+                    const [label, color] = statusMap[u.status] || ['未知', 'blue'];
+                    const created = u.createdAt ? new Date(u.createdAt).toLocaleDateString('zh-CN') : '-';
+                    return `<tr>
+                    <td><strong>${u.name}</strong></td>
+                    <td style="font-family:'Fira Code',monospace">${(u.chips || 0).toLocaleString()}</td>
+                    <td style="font-family:'Fira Code',monospace">${(u.diamonds || 0).toLocaleString()}</td>
+                    <td>${u.totalGames || 0}局 / ${u.winGames || 0}胜</td>
+                    <td><span class="badge badge-${color}"><span class="badge-dot"></span>${label}</span></td>
+                    <td style="color:var(--text-muted)">${created}</td>
+                    <td><div class="btn-group">
+                        ${u.status === 0 ? `<button class="btn btn-sm btn-green" onclick="approveUser('${u.id}')">通过</button>` : ''}
+                        ${u.status !== 2 ? `<button class="btn btn-sm btn-red" onclick="banUser('${u.id}')">封禁</button>` : `<button class="btn btn-sm btn-green" onclick="unbanUser('${u.id}')">解封</button>`}
+                        <button class="btn btn-sm btn-blue" onclick="editUser('${u.id}', ${u.chips || 0}, ${u.diamonds || 0})">编辑</button>
+                    </div></td>
+                </tr>`;
+                }).join('');
+            }
+
+            // 分页
+            const pagEl = document.getElementById('pagination');
+            if (pagEl && state.users.total > 15) {
+                const totalPages = Math.ceil(state.users.total / 15);
+                let html = '';
+                html += `<button class="page-btn" ${state.users.page <= 1 ? 'disabled' : ''} onclick="goPage(${state.users.page - 1})">上一页</button>`;
+                for (let i = 1; i <= totalPages; i++) {
+                    html += `<button class="page-btn ${state.users.page === i ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+                }
+                html += `<button class="page-btn" ${state.users.page >= totalPages ? 'disabled' : ''} onclick="goPage(${state.users.page + 1})">下一页</button>`;
+                pagEl.innerHTML = html;
+            }
+
+            // 绑定搜索和筛选
+            document.getElementById('searchInput')?.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { state.users.keyword = e.target.value; state.users.page = 1; loadUsers(); }
+            });
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.users.status = btn.dataset.status === '' ? null : parseInt(btn.dataset.status);
+                    state.users.page = 1;
+                    loadUsers();
+                });
+            });
+        }
+
+        // ===== 用户操作 =====
+        window.goPage = (p) => { state.users.page = p; loadUsers(); };
+        window.approveUser = async (id) => {
+            try { await api(`/users/${id}/approve`, { method: 'POST' }); showToast('已通过审批'); loadUsers(); }
+            catch (e) { showToast(e.message, 'error'); }
+        };
+        window.banUser = async (id) => {
+            if (!confirm('确定要封禁该用户？')) return;
+            try { await api(`/users/${id}/status`, { method: 'POST', body: JSON.stringify({ status: 2 }) }); showToast('已封禁'); loadUsers(); }
+            catch (e) { showToast(e.message, 'error'); }
+        };
+        window.unbanUser = async (id) => {
+            try { await api(`/users/${id}/status`, { method: 'POST', body: JSON.stringify({ status: 1 }) }); showToast('已解封'); loadUsers(); }
+            catch (e) { showToast(e.message, 'error'); }
+        };
+        window.editUser = (id, chips, diamonds) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.innerHTML = `
+            <div class="modal-card">
+                <h3>编辑用户资产</h3>
+                <div class="form-group">
+                    <label class="form-label">金币</label>
+                    <input class="form-input" type="number" id="editChips" value="${chips}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">钻石</label>
+                    <input class="form-input" type="number" id="editDiamonds" value="${diamonds}">
+                </div>
+                <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px">
+                    <button class="btn btn-red" id="editCancel">取消</button>
+                    <button class="btn-save" id="editSave" style="margin-top:0">保存</button>
+                </div>
+            </div>`;
+            document.body.appendChild(overlay);
+            overlay.querySelector('#editCancel').addEventListener('click', () => overlay.remove());
+            overlay.querySelector('#editSave').addEventListener('click', async () => {
+                try {
+                    await api(`/users/${id}/edit`, {
+                        method: 'POST', body: JSON.stringify({
+                            chips: parseInt(document.getElementById('editChips').value),
+                            diamonds: parseInt(document.getElementById('editDiamonds').value)
+                        })
+                    });
+                    showToast('已更新');
+                    overlay.remove();
+                    loadUsers();
+                } catch (e) { showToast(e.message, 'error'); }
+            });
+        };
+
+        // ===== 道具管理 =====
+        async function loadItems() {
+            try {
+                const json = await api('/items');
+                state.items = json.data;
+                renderItemsPage();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        function renderItemsPage() {
+            const grid = document.getElementById('itemsGrid');
+            if (!grid) return;
+            grid.innerHTML = state.items.map(item => `
+            <div class="item-card ${item.enabled ? '' : 'disabled'}">
+                <div class="item-info">
+                    <h4>${item.name}</h4>
+                    <p>${item.desc}</p>
+                    <div class="item-price">${item.priceType === 'cash' ? '¥' : '💎'} ${item.price}</div>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" ${item.enabled ? 'checked' : ''} onchange="toggleItem('${item.itemId}', this.checked)">
+                    <div class="toggle-track"></div>
+                    <div class="toggle-thumb"></div>
+                </label>
+            </div>
+        `).join('');
+        }
+
+        window.toggleItem = async (itemId, enabled) => {
+            try {
+                await api(`/items/${itemId}/toggle`, { method: 'POST', body: JSON.stringify({ enabled }) });
+                showToast(enabled ? '已上架' : '已下架');
+                loadItems();
+            } catch (e) { showToast(e.message, 'error'); }
+        };
+
+        // ===== 系统配置 =====
+        async function loadConfig() {
+            try {
+                const json = await api('/config');
+                state.config = json.data;
+                renderConfigPage();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        function renderConfigPage() {
+            const grid = document.getElementById('configGrid');
+            if (!grid) return;
+            grid.innerHTML = `
+            <div class="config-card">
+                <h3>${icons.users} 新用户默认值</h3>
+                <div class="form-group">
+                    <label class="form-label">默认金币</label>
+                    <input class="form-input" id="cfgChips" value="${state.config.default_chips || '888230'}">
+                    <div class="form-hint">新注册用户初始获得的金币数量</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">默认钻石</label>
+                    <input class="form-input" id="cfgDiamonds" value="${state.config.default_diamonds || '520'}">
+                    <div class="form-hint">新注册用户初始获得的钻石数量</div>
+                </div>
+                <button class="btn-save" onclick="saveConfig(['default_chips','default_diamonds'])">保存</button>
+            </div>
+            <div class="config-card">
+                <h3>${icons.config} 签到奖励</h3>
+                <div class="form-group">
+                    <label class="form-label">7日签到奖励 (逗号分隔)</label>
+                    <input class="form-input" id="cfgCheckin" value="${state.config.checkin_rewards || '5000,10000,20000,35000,50000,80000,100000'}">
+                    <div class="form-hint">第1天,第2天,...,第7天的签到奖励金币</div>
+                </div>
+                <button class="btn-save" onclick="saveConfig(['checkin_rewards'])">保存</button>
+            </div>
+            <div class="config-card">
+                <h3>${icons.config} 管理员设置</h3>
+                <div class="form-group">
+                    <label class="form-label">管理员密码</label>
+                    <input class="form-input" type="password" id="cfgAdminPwd" value="${state.config.admin_password || ''}">
+                    <div class="form-hint">修改后需重新登录</div>
+                </div>
+                <button class="btn-save" onclick="saveConfig(['admin_password'])">保存</button>
+            </div>`;
+        }
+
+        window.saveConfig = async (keys) => {
+            const map = {
+                default_chips: () => document.getElementById('cfgChips')?.value,
+                default_diamonds: () => document.getElementById('cfgDiamonds')?.value,
+                checkin_rewards: () => document.getElementById('cfgCheckin')?.value,
+                admin_password: () => document.getElementById('cfgAdminPwd')?.value
+            };
+            const body = {};
+            keys.forEach(k => { const fn = map[k]; if (fn) body[k] = fn(); });
+            try {
+                await api('/config', { method: 'POST', body: JSON.stringify(body) });
+                showToast('配置已保存');
+                loadConfig();
+            } catch (e) { showToast(e.message, 'error'); }
+        };
+
+        // ===== 初始化 =====
+        render();
+    </script>
+</body>
+
+</html>
