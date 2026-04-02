@@ -6,8 +6,12 @@ import { store } from '../store.js';
 import { wsClient } from '../ws.js';
 import { router } from '../router.js';
 import { getAvatarUrl } from '../utils/avatarUtil.js';
+import { audioManager } from '../utils/audio.js';
 
 export function renderLobby() {
+  // 试着播放大厅音乐
+  audioManager.playBGM('lobby');
+
   const player = store.state.player;
 
   const page = document.createElement('div');

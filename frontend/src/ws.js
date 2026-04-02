@@ -4,6 +4,16 @@
  */
 import { store } from './store.js';
 import { router } from './router.js';
+import { audioManager } from './utils/audio.js';
+
+function _getGender(playerId) {
+    if (!playerId) return 'male';
+    let hash = 0;
+    for (let i = 0; i < playerId.length; i++) {
+        hash = playerId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return Math.abs(hash) % 2 === 0 ? 'male' : 'female';
+}
 
 class WebSocketClient {
     constructor() {
@@ -167,6 +177,11 @@ class WebSocketClient {
             case 'player_called':
             case 'player_raised':
             case 'player_all_in':
+                const actionPlayerId = data.playerId || data.state?.currentPlayer;
+                if (type === 'player_called') audioManager.playVoice('call', _getGender(actionPlayerId));
+                else if (type === 'player_raised') audioManager.playVoice('raise', _getGender(actionPlayerId));
+                else if (type === 'player_all_in') audioManager.playVoice('all_in', _getGender(actionPlayerId));
+
                 // 记录下注动作元数据，供 table.js 播放筹码飞行动画
                 store.set('game.lastAction', {
                     type: type,
@@ -180,6 +195,7 @@ class WebSocketClient {
                 break;
 
             case 'player_folded':
+                audioManager.playVoice('fold', _getGender(data.playerId || data.state?.currentPlayer));
                 // 记录弃牌动作（用于浮动提示）
                 store.set('game.lastAction', {
                     type: 'player_folded',
@@ -193,17 +209,20 @@ class WebSocketClient {
                 break;
 
             case 'player_looked':
+                audioManager.playVoice('look', _getGender(data.playerId || data.state?.currentPlayer));
                 if (data.state) {
                     this._syncGameState(data.state);
                 }
                 break;
 
             case 'player_compared':
+                audioManager.playVoice('compare', _getGender(data.challengerId));
                 // 比牌结果展示
                 this._showCompareResult(data);
                 break;
 
             case 'deal_cards':
+                audioManager.playSoundEffect('chips');
                 store.set('game.myCards', data.cards);
                 break;
 
@@ -213,6 +232,11 @@ class WebSocketClient {
                 break;
 
             case 'game_over':
+                audioManager.stopBGM();
+                if (data.results && store.state.player.id) {
+                    const isWinner = data.results.some(r => r.playerId === store.state.player.id && r.profit > 0);
+                    audioManager.playSoundEffect(isWinner ? 'win' : 'lose');
+                }
                 store.set('result', data);
                 store.set('game.phase', 'finished');
 

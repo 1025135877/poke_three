@@ -9,11 +9,14 @@ import { renderHandCards } from '../components/card.js';
 import { renderPlayerSeat, SEAT_POSITIONS } from '../components/playerSeat.js';
 import { renderChipStack, createFlyingChip } from '../components/chipStack.js';
 import { getAvatarUrl } from '../utils/avatarUtil.js';
+import { audioManager } from '../utils/audio.js';
 
 // 记录上次处理的 action 时间戳，避免重复播放动画
 let _lastActionTimestamp = 0;
 
 export function renderTable() {
+  audioManager.playBGM('game');
+
   const game = store.state.game;
   const player = store.state.player;
 
