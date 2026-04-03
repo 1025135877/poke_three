@@ -32,9 +32,10 @@ public class RoomManager {
         if (config == null)
             throw new IllegalArgumentException("未知房间类型: " + roomType);
 
-        // 寻找有空位且等待中的同类型房间
+        // 寻找有空位且等待中的同类型房间（排除人机房间）
         GameRoom target = rooms.values().stream()
                 .filter(r -> roomType.equals(r.getRoomType())
+                        && !r.getId().startsWith("ai_")
                         && r.getPhase() == GameRoom.Phase.WAITING
                         && r.getPlayers().size() < r.getMaxPlayers()
                         && !r.getPlayers().containsKey(player.getId()))

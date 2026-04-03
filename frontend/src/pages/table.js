@@ -366,7 +366,7 @@ function _renderActionBar(page) {
     // 对局阶段：显示操作按钮
     const isMyTurn = game.currentPlayer === myId && game.phase === 'betting';
     const hasFolded = myState?.hasFolded;
-    const hasLooked = myState?.hasLooked || store.state.game.hasLooked;
+    const hasLooked = myState?.hasLooked || false;
     const opacity = (isMyTurn && !hasFolded) ? '1' : '0.4';
     const pointer = (isMyTurn && !hasFolded) ? 'auto' : 'none';
     const currentBet = game.currentBet || 100;
