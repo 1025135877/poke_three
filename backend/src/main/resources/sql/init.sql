@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS t_player (
     total_games  INTEGER  DEFAULT 0,
     win_games    INTEGER  DEFAULT 0,
     max_win      INTEGER  DEFAULT 0,
+    gender       TEXT     DEFAULT 'F',
+    status       INTEGER  DEFAULT 0,
     created_at   TEXT     DEFAULT (datetime('now', 'localtime')),
     updated_at   TEXT     DEFAULT (datetime('now', 'localtime'))
 );
@@ -110,8 +112,9 @@ INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('pwd_req
 INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('pwd_require_digit', 'false');
 INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('pwd_require_symbol', 'false');
 
--- 兼容已有数据库：添加性别列（默认女）
-BEGIN;
-CREATE TABLE IF NOT EXISTS _migration_gender_done (id INTEGER PRIMARY KEY);
-INSERT OR IGNORE INTO _migration_gender_done VALUES(1);
-COMMIT;
+-- 兼容已有数据库：添加性别列（默认女），continue-on-error=true 保证幂等
+ALTER TABLE t_player ADD COLUMN gender TEXT DEFAULT 'F';
+UPDATE t_player SET gender = 'F' WHERE gender IS NULL;
+
+-- 兼容已有数据库：添加 status 列
+ALTER TABLE t_player ADD COLUMN status INTEGER DEFAULT 0;
