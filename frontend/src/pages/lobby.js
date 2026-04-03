@@ -6,7 +6,7 @@ import { store } from '../store.js';
 import { wsClient } from '../ws.js';
 import { router } from '../router.js';
 import { getAvatarUrl } from '../utils/avatarUtil.js';
-import { audioManager } from '../utils/audio.js';
+import { audioManager, showVolumePanel } from '../utils/audio.js';
 
 export function renderLobby() {
   // 试着播放大厅音乐
@@ -38,7 +38,7 @@ export function renderLobby() {
           <span class="material-symbols-outlined text-sm filled" style="font-variation-settings: 'FILL' 1;">event_available</span>
           <span id="checkin-label">签到</span>
         </button>
-        <button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors active:scale-90 duration-200">
+        <button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors active:scale-90 duration-200" id="btn-lobby-settings">
           <span class="material-symbols-outlined text-on-surface-variant">settings</span>
         </button>
       </div>
@@ -189,6 +189,11 @@ export function renderLobby() {
     // 签到
     page.querySelector('#btn-checkin')?.addEventListener('click', () => {
       _showCheckinDialog(page);
+    });
+
+    // 设置（音量控制）
+    page.querySelector('#btn-lobby-settings')?.addEventListener('click', () => {
+      showVolumePanel();
     });
 
     // 加载签到状态

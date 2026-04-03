@@ -238,7 +238,109 @@ function renderFullProfile(page, player, records, items = {}) {
         </div>
         `}
       </section>
+
+      <!-- 修改密码 -->
+      <section class="card-elevated rounded-2xl p-5">
+        <button id="btn-change-pwd" class="w-full flex items-center justify-between group">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-tertiary/10 flex items-center justify-center">
+              <span class="material-symbols-outlined text-tertiary" style="font-size:20px;">lock</span>
+            </div>
+            <div class="text-left">
+              <p class="text-sm font-bold text-on-surface">修改密码</p>
+              <p class="text-[10px] text-on-surface-variant">更新您的登录密码</p>
+            </div>
+          </div>
+          <span class="material-symbols-outlined text-on-surface-variant/40 group-hover:text-on-surface-variant transition-colors">chevron_right</span>
+        </button>
+      </section>
   `;
+
+  // 绑定修改密码按钮
+  setTimeout(() => {
+    page.querySelector('#btn-change-pwd')?.addEventListener('click', () => {
+      _showChangePasswordModal();
+    });
+  }, 0);
+}
+
+/**
+ * 修改密码弹窗
+ */
+function _showChangePasswordModal() {
+  if (document.getElementById('change-pwd-overlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'change-pwd-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+
+  overlay.innerHTML = `
+    <div style="background:linear-gradient(145deg,#1a1a2e,#16213e);border-radius:20px;padding:28px 24px;width:90%;max-width:360px;box-shadow:0 16px 48px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.08);">
+      <h3 style="font-size:18px;font-weight:800;color:#fff;text-align:center;margin-bottom:20px;">🔐 修改密码</h3>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:4px;">旧密码</label>
+        <input type="password" id="pwd-old" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;font-size:14px;outline:none;" placeholder="请输入旧密码">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:4px;">新密码</label>
+        <input type="password" id="pwd-new" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;font-size:14px;outline:none;" placeholder="请输入新密码">
+      </div>
+      <div style="margin-bottom:18px;">
+        <label style="display:block;font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:4px;">确认新密码</label>
+        <input type="password" id="pwd-confirm" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;font-size:14px;outline:none;" placeholder="再次输入新密码">
+      </div>
+      <div id="pwd-error" style="color:#ef4444;font-size:12px;text-align:center;margin-bottom:10px;display:none;"></div>
+      <div style="display:flex;gap:10px;">
+        <button id="pwd-cancel" style="flex:1;padding:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">取消</button>
+        <button id="pwd-submit" style="flex:1;padding:10px;background:#22c55e;border:none;color:#000;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">确认修改</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#pwd-cancel').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+  overlay.querySelector('#pwd-submit').addEventListener('click', async () => {
+    const oldPwd = overlay.querySelector('#pwd-old').value;
+    const newPwd = overlay.querySelector('#pwd-new').value;
+    const confirmPwd = overlay.querySelector('#pwd-confirm').value;
+    const errEl = overlay.querySelector('#pwd-error');
+
+    if (!oldPwd || !newPwd || !confirmPwd) {
+      errEl.textContent = '请填写所有字段'; errEl.style.display = 'block'; return;
+    }
+    if (newPwd !== confirmPwd) {
+      errEl.textContent = '两次密码输入不一致'; errEl.style.display = 'block'; return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': token },
+        body: JSON.stringify({ oldPassword: oldPwd, newPassword: newPwd })
+      });
+      const json = await res.json();
+      if (json.code === 0) {
+        overlay.remove();
+        _showProfileToast('密码修改成功 ✅');
+      } else {
+        errEl.textContent = json.message || '修改失败'; errEl.style.display = 'block';
+      }
+    } catch (e) {
+      errEl.textContent = '网络错误'; errEl.style.display = 'block';
+    }
+  });
+}
+
+function _showProfileToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:10001;background:#22c55e;color:#000;padding:10px 24px;border-radius:24px;font-size:14px;font-weight:700;box-shadow:0 4px 16px rgba(34,197,94,0.4);animation:fadeInOut 2.5s ease;';
+  t.textContent = msg;
+  const s = document.createElement('style');
+  s.textContent = '@keyframes fadeInOut{0%{opacity:0;transform:translateX(-50%) translateY(-8px)}10%{opacity:1;transform:translateX(-50%)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-8px)}}';
+  t.appendChild(s);
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
 }
 
 function _renderItemCard(emoji, name, count, desc) {

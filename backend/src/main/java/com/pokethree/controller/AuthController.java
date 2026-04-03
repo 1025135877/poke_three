@@ -237,6 +237,30 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("code", 0, "data", items));
     }
 
+
+    /**
+     * 修改密码
+     * POST /api/auth/change-password
+     * Body: { "oldPassword": "xxx", "newPassword": "xxx" }
+     */
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @RequestHeader(value = "Authorization", required = false) String token,
+            @RequestBody Map<String, String> body) {
+        String playerId = requireAuth(token);
+        if (playerId == null) {
+            return ResponseEntity.ok(Map.of("code", 1, "message", "未登录"));
+        }
+        try {
+            String oldPwd = body.get("oldPassword");
+            String newPwd = body.get("newPassword");
+            authService.changePassword(playerId, oldPwd, newPwd);
+            return ResponseEntity.ok(Map.of("code", 0, "message", "密码修改成功"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(Map.of("code", 1, "message", e.getMessage()));
+        }
+    }
+
     // ===== 辅助 =====
 
     private String requireAuth(String token) {

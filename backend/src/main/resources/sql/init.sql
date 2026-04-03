@@ -102,3 +102,10 @@ INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('default
 INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('default_diamonds', '520');
 INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('checkin_rewards', '5000,10000,20000,35000,50000,80000,100000');
 INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('admin_password', 'admin123');
+
+-- 密码复杂度策略
+INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('pwd_min_length', '6');
+INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('pwd_require_upper', 'false');
+INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('pwd_require_lower', 'false');
+INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('pwd_require_digit', 'false');
+INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('pwd_require_symbol', 'false');

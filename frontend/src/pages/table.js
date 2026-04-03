@@ -9,7 +9,7 @@ import { renderHandCards } from '../components/card.js';
 import { renderPlayerSeat, SEAT_POSITIONS } from '../components/playerSeat.js';
 import { renderChipStack, createFlyingChip } from '../components/chipStack.js';
 import { getAvatarUrl } from '../utils/avatarUtil.js';
-import { audioManager } from '../utils/audio.js';
+import { audioManager, showVolumePanel } from '../utils/audio.js';
 
 // 记录上次处理的 action 时间戳，避免重复播放动画
 let _lastActionTimestamp = 0;
@@ -112,6 +112,11 @@ function _initTable(page) {
     _renderActionBar(page);
     // 检测最新动作并播放动画
     _handleLastAction(page);
+  });
+
+  // 设置按钮（音量控制）
+  page.querySelector('#btn-settings')?.addEventListener('click', () => {
+    showVolumePanel();
   });
 
   // 页面销毁时清理

@@ -301,6 +301,18 @@ class WebSocketClient {
                 break;
             }
 
+            case 'item_error': {
+                const errToast = document.createElement('div');
+                errToast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:10000;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;padding:10px 24px;border-radius:24px;font-size:14px;font-weight:600;box-shadow:0 4px 16px rgba(245,158,11,0.4);animation:fadeInOut 3s ease;pointer-events:none;';
+                errToast.textContent = '⚠️ ' + (data.message || '道具使用失败');
+                const errStyle = document.createElement('style');
+                errStyle.textContent = '@keyframes fadeInOut{0%{opacity:0;transform:translateX(-50%) translateY(-8px)}10%{opacity:1;transform:translateX(-50%)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-8px)}}';
+                errToast.appendChild(errStyle);
+                document.body.appendChild(errToast);
+                setTimeout(() => errToast.remove(), 3000);
+                break;
+            }
+
             case 'error':
                 console.error('服务器错误:', data.message);
                 break;

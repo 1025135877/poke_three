@@ -106,6 +106,9 @@ public class AuthService {
             throw new IllegalArgumentException("该昵称已被使用");
         }
 
+        // 校验密码复杂度
+        adminService.validatePassword(password);
+
         String salt = generateSalt();
         String hashedPassword = hashPassword(password, salt);
 
@@ -655,6 +658,38 @@ public class AuthService {
         return Base64.getEncoder().encodeToString(salt);
     }
 
+
+
+    /**
+     * 修改密码
+     */
+    public void changePassword(String playerId, String oldPassword, String newPassword) {
+        if (oldPassword == null || oldPassword.isBlank()) {
+            throw new IllegalArgumentException("请输入旧密码");
+        }
+        if (newPassword == null || newPassword.isBlank()) {
+            throw new IllegalArgumentException("请输入新密码");
+        }
+
+        Player player = playerMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("用户不存在");
+        }
+
+        String hashed = hashPassword(oldPassword, player.getSalt());
+        if (!hashed.equals(player.getPassword())) {
+            throw new IllegalArgumentException("旧密码错误");
+        }
+
+        // 校验新密码复杂度
+        adminService.validatePassword(newPassword);
+
+        String newSalt = generateSalt();
+        String newHashed = hashPassword(newPassword, newSalt);
+        player.setSalt(newSalt);
+        player.setPassword(newHashed);
+        playerMapper.updateById(player);
+    }
 
     /**
      * 获取商城商品定义（供 AdminController 使用）

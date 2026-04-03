@@ -1126,6 +1126,30 @@
                     <div class="form-hint">修改后需重新登录</div>
                 </div>
                 <button class="btn-save" onclick="saveConfig(['admin_password'])">保存</button>
+            </div>
+            <div class="config-card">
+                <h3>${icons.config} 密码策略</h3>
+                <div class="form-group">
+                    <label class="form-label">最小密码长度</label>
+                    <input class="form-input" type="number" id="cfgPwdMinLen" value="${state.config.pwd_min_length || '6'}" min="1" max="32">
+                </div>
+                <div class="form-group" style="display:flex;align-items:center;justify-content:space-between">
+                    <span style="font-size:13px;">要求包含大写字母</span>
+                    <label class="toggle"><input type="checkbox" id="cfgPwdUpper" ${state.config.pwd_require_upper === 'true' ? 'checked' : ''}><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+                </div>
+                <div class="form-group" style="display:flex;align-items:center;justify-content:space-between">
+                    <span style="font-size:13px;">要求包含小写字母</span>
+                    <label class="toggle"><input type="checkbox" id="cfgPwdLower" ${state.config.pwd_require_lower === 'true' ? 'checked' : ''}><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+                </div>
+                <div class="form-group" style="display:flex;align-items:center;justify-content:space-between">
+                    <span style="font-size:13px;">要求包含数字</span>
+                    <label class="toggle"><input type="checkbox" id="cfgPwdDigit" ${state.config.pwd_require_digit === 'true' ? 'checked' : ''}><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+                </div>
+                <div class="form-group" style="display:flex;align-items:center;justify-content:space-between">
+                    <span style="font-size:13px;">要求包含特殊符号</span>
+                    <label class="toggle"><input type="checkbox" id="cfgPwdSymbol" ${state.config.pwd_require_symbol === 'true' ? 'checked' : ''}><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+                </div>
+                <button class="btn-save" onclick="saveConfig(['pwd_min_length','pwd_require_upper','pwd_require_lower','pwd_require_digit','pwd_require_symbol'])">保存</button>
             </div>`;
         }
 
@@ -1134,7 +1158,12 @@
                 default_chips: () => document.getElementById('cfgChips')?.value,
                 default_diamonds: () => document.getElementById('cfgDiamonds')?.value,
                 checkin_rewards: () => document.getElementById('cfgCheckin')?.value,
-                admin_password: () => document.getElementById('cfgAdminPwd')?.value
+                admin_password: () => document.getElementById('cfgAdminPwd')?.value,
+                pwd_min_length: () => document.getElementById('cfgPwdMinLen')?.value,
+                pwd_require_upper: () => document.getElementById('cfgPwdUpper')?.checked ? 'true' : 'false',
+                pwd_require_lower: () => document.getElementById('cfgPwdLower')?.checked ? 'true' : 'false',
+                pwd_require_digit: () => document.getElementById('cfgPwdDigit')?.checked ? 'true' : 'false',
+                pwd_require_symbol: () => document.getElementById('cfgPwdSymbol')?.checked ? 'true' : 'false'
             };
             const body = {};
             keys.forEach(k => { const fn = map[k]; if (fn) body[k] = fn(); });

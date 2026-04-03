@@ -224,4 +224,38 @@ public class AdminService {
         String adminPwd = getConfig("admin_password", "admin123");
         return adminPwd.equals(password);
     }
+
+    /**
+     * 根据系统配置校验密码复杂度
+     */
+    public void validatePassword(String password) {
+        if (password == null || password.isBlank()) {
+            throw new IllegalArgumentException("密码不能为空");
+        }
+        int minLen = (int) getConfigLong("pwd_min_length", 6);
+        if (password.length() < minLen) {
+            throw new IllegalArgumentException("密码长度不能少于" + minLen + "位");
+        }
+        if ("true".equals(getConfig("pwd_require_upper", "false"))) {
+            if (!password.chars().anyMatch(Character::isUpperCase)) {
+                throw new IllegalArgumentException("密码必须包含大写字母");
+            }
+        }
+        if ("true".equals(getConfig("pwd_require_lower", "false"))) {
+            if (!password.chars().anyMatch(Character::isLowerCase)) {
+                throw new IllegalArgumentException("密码必须包含小写字母");
+            }
+        }
+        if ("true".equals(getConfig("pwd_require_digit", "false"))) {
+            if (!password.chars().anyMatch(Character::isDigit)) {
+                throw new IllegalArgumentException("密码必须包含数字");
+            }
+        }
+        if ("true".equals(getConfig("pwd_require_symbol", "false"))) {
+            if (password.chars().allMatch(c -> Character.isLetterOrDigit(c))) {
+                throw new IllegalArgumentException("密码必须包含特殊符号");
+            }
+        }
+    }
+
 }

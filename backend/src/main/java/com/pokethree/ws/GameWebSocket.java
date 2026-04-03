@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -54,6 +55,9 @@ public class GameWebSocket {
     private static final Map<String, ScheduledFuture<?>> disconnectTimers = new ConcurrentHashMap<>();
     /** 断线保留时间（秒） */
     private static final int DISCONNECT_TIMEOUT_SECONDS = 60;
+
+    /** 同局道具使用记录（key = playerId:roomId:itemType），游戏结束后清理 */
+    private static final Set<String> usedItemsPerGame = ConcurrentHashMap.newKeySet();
 
     @Autowired
     public void setRoomManager(RoomManager rm) {
@@ -294,19 +298,31 @@ public class GameWebSocket {
             case "use_xray" -> {
                 requireLogin(playerId);
                 GameRoom room = requireRoom(playerId);
+                String itemKey = playerId + ":" + room.getId() + ":xray";
+                if (usedItemsPerGame.contains(itemKey)) {
+                    sendToSession(session, "item_error", Map.of("message", "本局已使用过透视卡，每局只能使用一次"));
+                    break;
+                }
                 String targetId = (String) data.get("targetId");
                 room.useXrayCard(playerId, targetId);
                 // 持久化扣除道具
                 itemService.consumeItem(playerId, ItemService.ITEM_XRAY);
+                usedItemsPerGame.add(itemKey);
             }
 
             case "use_swap" -> {
                 requireLogin(playerId);
                 GameRoom room = requireRoom(playerId);
+                String swapKey = playerId + ":" + room.getId() + ":swap";
+                if (usedItemsPerGame.contains(swapKey)) {
+                    sendToSession(session, "item_error", Map.of("message", "本局已使用过换牌卡，每局只能使用一次"));
+                    break;
+                }
                 int cardIndex = data.get("cardIndex") instanceof Number n ? n.intValue() : -1;
                 room.useSwapCard(playerId, cardIndex);
                 // 持久化扣除道具
                 itemService.consumeItem(playerId, ItemService.ITEM_SWAP);
+                usedItemsPerGame.add(swapKey);
             }
 
             case "ping" -> sendToSession(session, "pong", Map.of("time", System.currentTimeMillis()));
@@ -389,6 +405,10 @@ public class GameWebSocket {
                             log.info("对局结束，清理断线玩家映射: {}", e.getKey());
                         }
                     }
+
+                    // 清理该房间的道具使用记录
+                    String roomId = room.getId();
+                    usedItemsPerGame.removeIf(key -> key.contains(":" + roomId + ":"));
                 }
             }
         });
