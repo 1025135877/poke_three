@@ -413,7 +413,8 @@ public class GameRoom {
             pm.put("hasLooked", p.isHasLooked());
             pm.put("isAllIn", p.isAllIn());
             pm.put("isReady", p.isReady());
-            pm.put("disconnected", p.isDisconnected());
+            pm.put("disconnected", p.isDisconnected());
+        pm.put("gender", p.getGender());
             pm.put("currentRoundBet", p.getCurrentRoundBet());
             // 只向本人显示手牌和道具信息
             if (p.getId().equals(viewerId)) {

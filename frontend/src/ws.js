@@ -7,12 +7,10 @@ import { router } from './router.js';
 import { audioManager } from './utils/audio.js';
 
 function _getGender(playerId) {
-    if (!playerId) return 'male';
-    let hash = 0;
-    for (let i = 0; i < playerId.length; i++) {
-        hash = playerId.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return Math.abs(hash) % 2 === 0 ? 'male' : 'female';
+    if (!playerId) return 'female';
+    const players = store.state.game?.players || [];
+    const p = players.find(pl => pl.id === playerId);
+    return p?.gender === 'M' ? 'male' : 'female';
 }
 
 class WebSocketClient {

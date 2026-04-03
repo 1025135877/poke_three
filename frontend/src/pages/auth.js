@@ -24,6 +24,8 @@ export function renderAuth() {
   let loading = false;
   // 选中的头像种子
   let selectedAvatar = AVATAR_SEEDS[0];
+  // 性别选择
+  let selectedGender = 'F';
 
   function render() {
     const previewSeed = isRegister ? selectedAvatar : '欢迎回来';
@@ -103,6 +105,22 @@ export function renderAuth() {
                 class="flex-1 bg-transparent outline-none text-sm text-on-surface placeholder:text-on-surface-variant/50"
                 autocomplete="new-password" />
             </div>
+          </div>
+          <!-- 性别选择 -->
+          <div>
+            <label class="block text-xs font-semibold text-on-surface-variant mb-1.5 ml-1">性别</label>
+            <div class="flex gap-3" id="gender-group">
+              <button type="button" data-gender="F"
+                class="flex-1 py-3 rounded-xl text-center font-bold text-sm transition-all duration-200
+                  ${selectedGender === 'F' ? 'bg-pink-500/20 text-pink-400 border-2 border-pink-400/50 shadow-md' : 'bg-surface-container text-on-surface-variant border-2 border-transparent hover:bg-surface-container-high'}">
+                👩 女
+              </button>
+              <button type="button" data-gender="M"
+                class="flex-1 py-3 rounded-xl text-center font-bold text-sm transition-all duration-200
+                  ${selectedGender === 'M' ? 'bg-blue-500/20 text-blue-400 border-2 border-blue-400/50 shadow-md' : 'bg-surface-container text-on-surface-variant border-2 border-transparent hover:bg-surface-container-high'}">
+                👨 男
+              </button>
+            </div>
           </div>` : ''}
 
           <!-- 提交按钮 -->
@@ -143,6 +161,14 @@ export function renderAuth() {
     container.querySelectorAll('#avatar-grid button').forEach(btn => {
       btn.addEventListener('click', () => {
         selectedAvatar = btn.dataset.seed;
+        render();
+      });
+    });
+
+    // 性别选择事件
+    container.querySelectorAll('#gender-group button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedGender = btn.dataset.gender;
         render();
       });
     });
@@ -192,7 +218,7 @@ export function renderAuth() {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, password, avatar: isRegister ? selectedAvatar : undefined })
+        body: JSON.stringify({ name, password, avatar: isRegister ? selectedAvatar : undefined, gender: isRegister ? selectedGender : undefined })
       });
       const json = await res.json();
 
@@ -207,13 +233,14 @@ export function renderAuth() {
       const data = json.data;
       localStorage.setItem('token', data.token);
       localStorage.setItem('playerId', data.playerId);
-      
+
       const playerSnapshot = {
         id: data.playerId,
         name: data.name,
         chips: data.chips,
         diamonds: data.diamonds,
-        avatar: data.avatar || ''
+        avatar: data.avatar || '',
+        gender: data.gender || 'F'
       };
       localStorage.setItem('playerSnapshot', JSON.stringify(playerSnapshot));
 

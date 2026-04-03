@@ -45,6 +45,9 @@ public class Player {
     /** 单局最高获胜 */
     private Long maxWin;
 
+    /** 性别: F=女 M=男 */
+    private String gender;
+
     /** 账号状态: 0=待审核 1=正常 2=封禁 */
     private Integer status;
 

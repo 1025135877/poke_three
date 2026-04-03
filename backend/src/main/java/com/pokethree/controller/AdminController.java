@@ -79,7 +79,8 @@ public class AdminController {
         requireAdmin(token);
         Long chips = body.containsKey("chips") ? ((Number) body.get("chips")).longValue() : null;
         Integer diamonds = body.containsKey("diamonds") ? ((Number) body.get("diamonds")).intValue() : null;
-        adminService.editUser(id, chips, diamonds);
+        String gender = body.get("gender") instanceof String g ? g : null;
+        adminService.editUser(id, chips, diamonds, gender);
         return Map.of("code", 0, "message", "用户信息已更新");
     }
 

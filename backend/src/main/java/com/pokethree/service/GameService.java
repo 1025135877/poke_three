@@ -49,7 +49,7 @@ public class GameService {
             log.info("新玩家注册: {} ({})", name, player.getId());
         }
 
-        return PlayerState.of(player.getId(), player.getName(), player.getAvatar(), player.getChips(), false);
+        return PlayerState.of(player.getId(), player.getName(), player.getAvatar(), player.getChips(), false, player.getGender());
     }
 
     /**

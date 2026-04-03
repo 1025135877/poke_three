@@ -92,7 +92,7 @@ public class AuthService {
      *
      * @return {token, player} 或抛出异常
      */
-    public Map<String, Object> register(String name, String password, String avatar) {
+    public Map<String, Object> register(String name, String password, String avatar, String gender) {
         if (name == null || name.isBlank() || name.length() > 20) {
             throw new IllegalArgumentException("昵称不能为空且不超过20个字符");
         }
@@ -117,7 +117,8 @@ public class AuthService {
                 .setName(name)
                 .setPassword(hashedPassword)
                 .setSalt(salt)
-                .setAvatar(avatar != null ? avatar : "")
+                .setAvatar(avatar != null ? avatar : "")
+            .setGender(gender != null && gender.equalsIgnoreCase("M") ? "M" : "F")
                 .setChips(adminService.getConfigLong("default_chips", 888230L))
                 .setDiamonds((int) adminService.getConfigLong("default_diamonds", 520))
                 .setTotalGames(0)
@@ -138,7 +139,8 @@ public class AuthService {
                 "name", player.getName(),
                 "chips", player.getChips(),
                 "diamonds", player.getDiamonds(),
-                "avatar", player.getAvatar() != null ? player.getAvatar() : "");
+                "avatar", player.getAvatar() != null ? player.getAvatar() : "",
+            "gender", player.getGender() != null ? player.getGender() : "F");
     }
 
     /**
@@ -184,7 +186,8 @@ public class AuthService {
                 "name", player.getName(),
                 "chips", player.getChips(),
                 "diamonds", player.getDiamonds(),
-                "avatar", player.getAvatar() != null ? player.getAvatar() : "");
+                "avatar", player.getAvatar() != null ? player.getAvatar() : "",
+            "gender", player.getGender() != null ? player.getGender() : "F");
     }
 
     /**
@@ -210,7 +213,8 @@ public class AuthService {
                 "avatar", player.getAvatar() != null ? player.getAvatar() : "",
                 "totalGames", player.getTotalGames(),
                 "winGames", player.getWinGames(),
-                "maxWin", player.getMaxWin());
+                "maxWin", player.getMaxWin(),
+            "gender", player.getGender() != null ? player.getGender() : "F");
     }
 
     /**

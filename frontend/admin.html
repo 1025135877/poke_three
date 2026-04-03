@@ -927,7 +927,7 @@
                 <button class="filter-btn ${state.users.status === 2 ? 'active' : ''}" data-status="2">已封禁</button>
             </div>
             <div class="table-wrap"><table id="usersTable"><thead><tr>
-                <th>昵称</th><th>金币</th><th>钻石</th><th>局数</th><th>状态</th><th>注册时间</th><th>操作</th>
+                <th>昵称</th><th>性别</th><th>金币</th><th>钻石</th><th>局数</th><th>状态</th><th>注册时间</th><th>操作</th>
             </tr></thead><tbody id="usersBody"></tbody></table></div>
             <div class="pagination" id="pagination"></div>`;
         }
@@ -955,6 +955,7 @@
                     const created = u.createdAt ? new Date(u.createdAt).toLocaleDateString('zh-CN') : '-';
                     return `<tr>
                     <td><strong>${u.name}</strong></td>
+                    <td>${u.gender === 'M' ? '👨 男' : '👩 女'}</td>
                     <td style="font-family:'Fira Code',monospace">${(u.chips || 0).toLocaleString()}</td>
                     <td style="font-family:'Fira Code',monospace">${(u.diamonds || 0).toLocaleString()}</td>
                     <td>${u.totalGames || 0}局 / ${u.winGames || 0}胜</td>
@@ -963,7 +964,7 @@
                     <td><div class="btn-group">
                         ${u.status === 0 ? `<button class="btn btn-sm btn-green" onclick="approveUser('${u.id}')">通过</button>` : ''}
                         ${u.status !== 2 ? `<button class="btn btn-sm btn-red" onclick="banUser('${u.id}')">封禁</button>` : `<button class="btn btn-sm btn-green" onclick="unbanUser('${u.id}')">解封</button>`}
-                        <button class="btn btn-sm btn-blue" onclick="editUser('${u.id}', ${u.chips || 0}, ${u.diamonds || 0})">编辑</button>
+                        <button class="btn btn-sm btn-blue" onclick="editUser('${u.id}', ${u.chips || 0}, ${u.diamonds || 0}, '${u.gender || 'F'}')">编辑</button>
                     </div></td>
                 </tr>`;
                 }).join('');
@@ -1010,12 +1011,12 @@
             try { await api(`/users/${id}/status`, { method: 'POST', body: JSON.stringify({ status: 1 }) }); showToast('已解封'); loadUsers(); }
             catch (e) { showToast(e.message, 'error'); }
         };
-        window.editUser = (id, chips, diamonds) => {
+        window.editUser = (id, chips, diamonds, gender) => {
             const overlay = document.createElement('div');
             overlay.className = 'modal-overlay';
             overlay.innerHTML = `
             <div class="modal-card">
-                <h3>编辑用户资产</h3>
+                <h3>编辑用户</h3>
                 <div class="form-group">
                     <label class="form-label">金币</label>
                     <input class="form-input" type="number" id="editChips" value="${chips}">
@@ -1023,6 +1024,13 @@
                 <div class="form-group">
                     <label class="form-label">钻石</label>
                     <input class="form-input" type="number" id="editDiamonds" value="${diamonds}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">性别</label>
+                    <select class="form-input" id="editGender">
+                        <option value="F" ${gender !== 'M' ? 'selected' : ''}>👩 女</option>
+                        <option value="M" ${gender === 'M' ? 'selected' : ''}>👨 男</option>
+                    </select>
                 </div>
                 <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px">
                     <button class="btn btn-red" id="editCancel">取消</button>
@@ -1036,7 +1044,8 @@
                     await api(`/users/${id}/edit`, {
                         method: 'POST', body: JSON.stringify({
                             chips: parseInt(document.getElementById('editChips').value),
-                            diamonds: parseInt(document.getElementById('editDiamonds').value)
+                            diamonds: parseInt(document.getElementById('editDiamonds').value),
+                            gender: document.getElementById('editGender').value
                         })
                     });
                     showToast('已更新');

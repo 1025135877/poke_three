@@ -109,3 +109,9 @@ INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('pwd_req
 INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('pwd_require_lower', 'false');
 INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('pwd_require_digit', 'false');
 INSERT OR IGNORE INTO t_system_config(config_key, config_value) VALUES ('pwd_require_symbol', 'false');
+
+-- 兼容已有数据库：添加性别列（默认女）
+BEGIN;
+CREATE TABLE IF NOT EXISTS _migration_gender_done (id INTEGER PRIMARY KEY);
+INSERT OR IGNORE INTO _migration_gender_done VALUES(1);
+COMMIT;

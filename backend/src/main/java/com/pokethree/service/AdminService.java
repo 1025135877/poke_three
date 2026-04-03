@@ -123,7 +123,8 @@ public class AdminService {
             u.put("diamonds", p.getDiamonds());
             u.put("totalGames", p.getTotalGames());
             u.put("winGames", p.getWinGames());
-            u.put("status", p.getStatus() != null ? p.getStatus() : 1);
+            u.put("gender", p.getGender() != null ? p.getGender() : "F");
+        u.put("status", p.getStatus() != null ? p.getStatus() : 1);
             u.put("createdAt", p.getCreatedAt());
             users.add(u);
         }
@@ -167,7 +168,7 @@ public class AdminService {
      * 编辑用户金币/钻石
      */
     @Transactional
-    public void editUser(String playerId, Long chips, Integer diamonds) {
+    public void editUser(String playerId, Long chips, Integer diamonds, String gender) {
         LambdaUpdateWrapper<Player> wrapper = new LambdaUpdateWrapper<Player>()
                 .eq(Player::getId, playerId);
         if (chips != null)
@@ -176,7 +177,7 @@ public class AdminService {
             wrapper.set(Player::getDiamonds, diamonds);
         wrapper.set(Player::getUpdatedAt, LocalDateTime.now());
         playerMapper.update(null, wrapper);
-        log.info("管理员编辑用户: {} chips={} diamonds={}", playerId, chips, diamonds);
+        log.info("管理员编辑用户: {} chips={} diamonds={} gender={}", playerId, chips, diamonds, gender);
     }
 
     // ===== 商城道具管理 =====

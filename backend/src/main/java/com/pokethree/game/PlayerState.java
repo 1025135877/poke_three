@@ -16,6 +16,7 @@ public class PlayerState {
     private String name;
     private String avatar;
     private long chips;
+    private String gender = "F";
     private boolean isAI;
 
     // 本局状态
@@ -34,7 +35,11 @@ public class PlayerState {
     private boolean usedXrayThisRound = false;
     private boolean usedSwapThisRound = false;
 
-    public static PlayerState of(String id, String name, String avatar, long chips, boolean isAI) {
+    public static PlayerState of(String id, String name, String avatar, long chips, boolean isAI) {
+        return of(id, name, avatar, chips, isAI, "F");
+    }
+
+    public static PlayerState of(String id, String name, String avatar, long chips, boolean isAI, String gender) {
         PlayerState ps = new PlayerState();
         ps.id = id;
         ps.name = name;

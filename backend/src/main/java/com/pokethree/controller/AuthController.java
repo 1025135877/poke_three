@@ -28,7 +28,8 @@ public class AuthController {
             String name = body.get("name");
             String password = body.get("password");
             String avatar = body.getOrDefault("avatar", "");
-            Map<String, Object> result = authService.register(name, password, avatar);
+            String gender = body.getOrDefault("gender", "F");
+            Map<String, Object> result = authService.register(name, password, avatar, gender);
             return ResponseEntity.ok(Map.of("code", 0, "data", result));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(Map.of("code", 1, "message", e.getMessage()));
@@ -236,7 +237,6 @@ public class AuthController {
         var items = authService.getPlayerItems(playerId);
         return ResponseEntity.ok(Map.of("code", 0, "data", items));
     }
-
 
     /**
      * 修改密码
